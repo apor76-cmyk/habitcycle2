@@ -6,60 +6,21 @@
 <title>Habit Manager Pro + GitHub Sync</title>
 <style>
 :root{
-  --bg:#f4f6fb;
-  --card:#ffffff;
-  --text:#111;
+  --bg:#f4f6fb; --card:#fff; --text:#111;
 }
-.dark{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --text:#e5e7eb;
-}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont;
-  background:var(--bg);
-  color:var(--text);
-}
-header{
-  position:sticky; top:0;
-  background:var(--card);
-  padding:10px;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  border-bottom:1px solid #ddd;
-}
-.panel{
-  background:var(--card);
-  padding:10px;
-  border-bottom:1px solid #ddd;
-}
-.container{ padding:12px; }
-
-table{
-  border-collapse:collapse;
-  width:100%;
-  min-width:700px;
-}
-th,td{
-  border:1px solid #ddd;
-  padding:8px;
-  text-align:center;
-}
-.category-label{
-  padding:2px 6px;
-  border-radius:6px;
-  color:#fff;
-  font-size:12px;
-}
-.today{ background:#fde68a; color:#000; }
-
+.dark{--bg:#0f172a; --card:#1e293b; --text:#e5e7eb;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont;background:var(--bg);color:var(--text);}
+header{position:sticky;top:0;background:var(--card);padding:10px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid #ddd;}
+.panel{background:var(--card);padding:10px;border-bottom:1px solid #ddd;}
+.container{padding:12px;}
+table{border-collapse:collapse;width:100%;min-width:700px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+.category-label{padding:2px 6px;border-radius:6px;color:#fff;font-size:12px;}
+.today{background:#fde68a;color:#000;}
 button{padding:4px 8px;border:none;border-radius:6px;background:#FF9900;color:#fff;cursor:pointer;}
-input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
+input,select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -68,17 +29,14 @@ input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
   <input type="date" id="weekPicker">
   <button onclick="exportData()">백업</button>
   <input type="file" id="importFile">
-
   <!-- GitHub Sync -->
-  <button onclick="GitHubSync.syncToGitHub()">🔼 GitHub로 올리기</button>
+  <button onclick="GitHubSync.syncToGitHub()">🔼 GitHub 올리기</button>
   <button onclick="GitHubSync.syncFromGitHub()">🔽 GitHub 내려받기</button>
   <button onclick="GitHubSync.clearToken()">🔑 토큰 초기화</button>
 </header>
 
 <div class="panel">
   <b>관리 패널</b><br><br>
-
-  <!-- 카테고리 -->
   카테고리:
   <select id="categorySelect"></select>
   <input id="categoryName" placeholder="이름">
@@ -88,7 +46,6 @@ input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
   <button onclick="deleteCategory()">삭제</button>
   <br><br>
 
-  <!-- 습관 -->
   습관:
   <select id="habitSelect"></select>
   <input id="habitName" placeholder="이름">
@@ -97,7 +54,6 @@ input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
   <button onclick="deleteHabit()">삭제</button>
   <br><br>
 
-  <!-- 단계 -->
   단계:
   <select id="stageSelect"></select>
   <input id="stageName" placeholder="이름">
@@ -106,7 +62,6 @@ input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
   <button onclick="deleteStage()">삭제</button>
   <br><br>
 
-  <!-- 반복 주기 -->
   반복 주기:
   <select id="recList"></select>
   <input type="number" id="recDays" placeholder="일수" min="1" style="width:80px">
@@ -118,18 +73,17 @@ input, select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
 <div class="container">
   <h3>📅 주간 기록</h3>
   <table id="table"></table>
-
   <h3>📊 단계 통계</h3>
   <table id="stats"></table>
 </div>
 
 <script>
-/* ================= Habit Manager ================= */
+/* ================= Habit Manager Core ================= */
 let categories=JSON.parse(localStorage.getItem("cat")||"[]");
 let habits=JSON.parse(localStorage.getItem("hab")||"[]");
 let stages=JSON.parse(localStorage.getItem("stg")||'["없음"]');
 let data=JSON.parse(localStorage.getItem("data")||"{}");
-let recurrenceList = JSON.parse(localStorage.getItem("recList")||"[]");
+let recurrenceList=JSON.parse(localStorage.getItem("recList")||"[]");
 let currentDate=new Date();
 
 function save(){
@@ -140,160 +94,69 @@ function save(){
   localStorage.setItem("recList",JSON.stringify(recurrenceList));
 }
 
-function getWeek(d){
-  let date=new Date(d);
-  let day=date.getDay();
-  let diff=date.getDate()-day+(day===0?-6:1);
-  let monday=new Date(date.setDate(diff));
-  let arr=[];
-  for(let i=0;i<7;i++){
-    let nd=new Date(monday);
-    nd.setDate(monday.getDate()+i);
-    arr.push(nd);
-  }
-  return arr;
-}
+/* 렌더, SELECT, TABLE, STATS, CYCLE, DARK, TODAY, BACKUP/IMPORT (이전 코드 그대로) */
+function getWeek(d){let date=new Date(d);let day=date.getDay();let diff=date.getDate()-day+(day===0?-6:1);let monday=new Date(date.setDate(diff));let arr=[];for(let i=0;i<7;i++){let nd=new Date(monday);nd.setDate(monday.getDate()+i);arr.push(nd);}return arr;}
+function render(){renderSelects();renderTable();renderStats();save();}
+function renderSelects(){categorySelect.innerHTML="";categories.forEach((c,i)=>{categorySelect.innerHTML+=`<option value="${i}">${c.name}</option>`;});habitSelect.innerHTML="";habits.forEach((h,i)=>{habitSelect.innerHTML+=`<option value="${i}">${h.name}</option>`;});stageSelect.innerHTML="";stages.forEach((s,i)=>{stageSelect.innerHTML+=`<option value="${i}">${s}</option>`;});recList.innerHTML="";recurrenceList.forEach((r,i)=>{recList.innerHTML+=`<option value="${i}">${r.days}일</option>`;});}
+function addCategory(){categories.push({name:categoryName.value,color:categoryColor.value});render();}
+function updateCategory(){let i=categorySelect.value;categories[i]={name:categoryName.value,color:categoryColor.value};render();}
+function deleteCategory(){categories.splice(categorySelect.value,1);habits=habits.filter(h=>h.cat!=categorySelect.value);render();}
+function addHabit(){habits.push({name:habitName.value,cat:categorySelect.value});render();}
+function updateHabit(){let i=habitSelect.value;habits[i].name=habitName.value;habits[i].cat=categorySelect.value;render();}
+function deleteHabit(){habits.splice(habitSelect.value,1);render();}
+function addStage(){stages.push(stageName.value);render();}
+function updateStage(){stages[stageSelect.value]=stageName.value;render();}
+function deleteStage(){if(stages.length>1){stages.splice(stageSelect.value,1);render();}}
+function addRecurrence(){const days=parseInt(recDays.value);const color=recColor.value;if(!days||days<1)return alert("반복일수 확인");recurrenceList.push({days,color});render();}
+function deleteRecurrence(){recurrenceList.splice(recList.value,1);render();}
+function renderTable(){const week=getWeek(currentDate);const today=new Date().toDateString();table.innerHTML="";let sortedHabits=[...habits].sort((a,b)=>a.cat-b.cat);let header="<tr><th>습관</th>";week.forEach(d=>{header+=`<th class="${d.toDateString()==today?"today":""}">${d.getMonth()+1}/${d.getDate()}</th>`;});header+="</tr>";table.innerHTML+=header;sortedHabits.forEach(h=>{const cat=categories[h.cat]||{name:"",color:"#999"};let row=`<tr><td><span class="category-label" style="background:${cat.color}">${cat.name}</span> ${h.name}</td>`;week.forEach(d=>{let key=h.name+d.toDateString();let v=data[key]||0;let recStyle="";if(recurrenceList.length>0){let lastKey=Object.keys(data).filter(k=>k.startsWith(h.name)&&data[k]==stages.length-1).sort((a,b)=>new Date(a.slice(h.name.length))-new Date(b.slice(h.name.length))).pop();if(lastKey){let lastDate=new Date(lastKey.slice(h.name.length));recurrenceList.forEach(r=>{let diffDays=Math.floor((d-lastDate)/(1000*60*60*24));if(diffDays===r.days){recStyle=`background:${r.color}; color:#fff;`;}});}}row+=`<td onclick="cycle('${key}')" style="${recStyle}">${stages[v]}</td>`;});row+="</tr>";table.innerHTML+=row;});}
+function renderStats(){stats.innerHTML="";let header="<tr><th>습관</th>";stages.forEach(s=>header+=`<th>${s}</th>`);header+="</tr>";stats.innerHTML+=header;let sortedHabits=[...habits].sort((a,b)=>a.cat);sortedHabits.forEach(h=>{const cat=categories[h.cat]||{color:"#999",name:""};let row=`<tr><td><span class="category-label" style="background:${cat.color}">${cat.name}</span> ${h.name}</td>`;stages.forEach((s,i)=>{let count=0;Object.keys(data).forEach(k=>{if(k.startsWith(h.name)&&data[k]==i) count++;});row+=`<td>${count}</td>`;});row+="</tr>";stats.innerHTML+=row;});}
+function cycle(key){let v=data[key]||0;v=(v+1)%stages.length;data[key]=v;render();}
+function toggleDark(){document.body.classList.toggle("dark");}
+function goToday(){currentDate=new Date();weekPicker.valueAsDate=currentDate;render();}
+weekPicker.addEventListener("change",e=>{currentDate=new Date(e.target.value);render();});
+function exportData(){const blob=new Blob([JSON.stringify({categories,habits,stages,data,recurrenceList})],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="habit_backup.json";a.click();}
+document.getElementById("importFile").addEventListener("change",e=>{const file=e.target.files[0];const reader=new FileReader();reader.onload=()=>{const obj=JSON.parse(reader.result);categories=obj.categories||[];habits=obj.habits||[];stages=obj.stages||["없음"];data=obj.data||{};recurrenceList=obj.recurrenceList||[];render();};reader.readAsText(file);});
 
-function render(){
-  renderSelects();
-  renderTable();
-  renderStats();
-  save();
-}
+/* ================= GitHub Sync Core ================= */
+const GITHUB={user:"apor76-cmyk",repo:"memory_dark",path:"memory_sync.json"};
+const GH_API=`https://api.github.com/repos/${GITHUB.user}/${GITHUB.repo}/contents/${GITHUB.path}`;
+const GH_RAW=`https://raw.githubusercontent.com/${GITHUB.user}/${GITHUB.repo}/main/${GITHUB.path}`;
 
-function renderSelects(){
-  categorySelect.innerHTML="";
-  categories.forEach((c,i)=>{ categorySelect.innerHTML+=`<option value="${i}">${c.name}</option>`; });
-  habitSelect.innerHTML="";
-  habits.forEach((h,i)=>{ habitSelect.innerHTML+=`<option value="${i}">${h.name}</option>`; });
-  stageSelect.innerHTML="";
-  stages.forEach((s,i)=>{ stageSelect.innerHTML+=`<option value="${i}">${s}</option>`; });
-  recList.innerHTML="";
-  recurrenceList.forEach((r,i)=>{ recList.innerHTML+=`<option value="${i}">${r.days}일</option>`; });
-}
+function getToken(){let token=localStorage.getItem("GH_TOKEN");if(!token){token=prompt("GitHub Token 입력 (repo read/write 필요)");if(token)localStorage.setItem("GH_TOKEN",token);}return token;}
+function clearToken(){localStorage.removeItem("GH_TOKEN");alert("토큰 삭제됨");}
+function getSyncData(){return {categories,habits,stages,data,recurrenceList};}
+function applySyncData(obj){if(!obj)return;categories=obj.categories||[];habits=obj.habits||[];stages=obj.stages||["없음"];data=obj.data||{};recurrenceList=obj.recurrenceList||[];render();}
 
-function addCategory(){ categories.push({name:categoryName.value,color:categoryColor.value}); render(); }
-function updateCategory(){ let i=categorySelect.value; categories[i]={name:categoryName.value,color:categoryColor.value}; render(); }
-function deleteCategory(){ categories.splice(categorySelect.value,1); habits=habits.filter(h=>h.cat!=categorySelect.value); render(); }
-function addHabit(){ habits.push({name:habitName.value,cat:categorySelect.value}); render(); }
-function updateHabit(){ let i=habitSelect.value; habits[i].name=habitName.value; habits[i].cat=categorySelect.value; render(); }
-function deleteHabit(){ habits.splice(habitSelect.value,1); render(); }
-function addStage(){ stages.push(stageName.value); render(); }
-function updateStage(){ stages[stageSelect.value]=stageName.value; render(); }
-function deleteStage(){ if(stages.length>1){ stages.splice(stageSelect.value,1); render(); } }
-function addRecurrence(){ const days=parseInt(recDays.value); const color=recColor.value; if(!days||days<1)return alert("반복일수 확인"); recurrenceList.push({days,color}); render(); }
-function deleteRecurrence(){ recurrenceList.splice(recList.value,1); render(); }
-
-function renderTable(){
-  const week=getWeek(currentDate);
-  const today=new Date().toDateString();
-  table.innerHTML="";
-  let sortedHabits=[...habits].sort((a,b)=>a.cat-b.cat);
-  let header="<tr><th>습관</th>";
-  week.forEach(d=>{ header+=`<th class="${d.toDateString()==today?"today":""}">${d.getMonth()+1}/${d.getDate()}</th>`; });
-  header+="</tr>";
-  table.innerHTML+=header;
-
-  sortedHabits.forEach(h=>{
-    const cat=categories[h.cat]||{name:"",color:"#999"};
-    let row=`<tr><td><span class="category-label" style="background:${cat.color}">${cat.name}</span> ${h.name}</td>`;
-    week.forEach(d=>{
-      let key=h.name+d.toDateString();
-      let v=data[key]||0;
-      let recStyle="";
-      if(recurrenceList.length>0){
-        let lastKey=Object.keys(data)
-          .filter(k=>k.startsWith(h.name)&&data[k]==stages.length-1)
-          .sort((a,b)=>new Date(a.slice(h.name.length))-new Date(b.slice(h.name.length)))
-          .pop();
-        if(lastKey){
-          let lastDate=new Date(lastKey.slice(h.name.length));
-          recurrenceList.forEach(r=>{
-            let diffDays=Math.floor((d-lastDate)/(1000*60*60*24));
-            if(diffDays===r.days){ recStyle=`background:${r.color}; color:#fff;`; }
-          });
-        }
-      }
-      row+=`<td onclick="cycle('${key}')" style="${recStyle}">${stages[v]}</td>`;
-    });
-    row+="</tr>";
-    table.innerHTML+=row;
-  });
-}
-
-function renderStats(){
-  stats.innerHTML="";
-  let header="<tr><th>습관</th>";
-  stages.forEach(s=>header+=`<th>${s}</th>`);
-  header+="</tr>";
-  stats.innerHTML+=header;
-
-  let sortedHabits=[...habits].sort((a,b)=>a.cat);
-  sortedHabits.forEach(h=>{
-    const cat=categories[h.cat]||{color:"#999",name:""};
-    let row=`<tr><td><span class="category-label" style="background:${cat.color}">${cat.name}</span> ${h.name}</td>`;
-    stages.forEach((s,i)=>{
-      let count=0;
-      Object.keys(data).forEach(k=>{ if(k.startsWith(h.name)&&data[k]==i) count++; });
-      row+=`<td>${count}</td>`;
-    });
-    row+="</tr>";
-    stats.innerHTML+=row;
-  });
-}
-
-function cycle(key){ let v=data[key]||0; v=(v+1)%stages.length; data[key]=v; render(); }
-function toggleDark(){ document.body.classList.toggle("dark"); }
-function goToday(){ currentDate=new Date(); weekPicker.valueAsDate=currentDate; render(); }
-weekPicker.addEventListener("change",e=>{ currentDate=new Date(e.target.value); render(); });
-function exportData(){ const blob=new Blob([JSON.stringify({categories,habits,stages,data,recurrenceList})],{type:"application/json"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="habit_backup.json"; a.click(); }
-document.getElementById("importFile").addEventListener("change",e=>{
-  const file=e.target.files[0];
-  const reader=new FileReader();
-  reader.onload=()=>{ const obj=JSON.parse(reader.result); categories=obj.categories||[]; habits=obj.habits||[]; stages=obj.stages||["없음"]; data=obj.data||{}; recurrenceList=obj.recurrenceList||[]; render(); };
-  reader.readAsText(file);
-});
-
-/* ================= GitHub Sync ================= */
-const GITHUB_INFO_SYNC = { user:"YOUR_GITHUB_USERNAME", repo:"YOUR_PRIVATE_REPO", branch:"main", path:"habit_sync.json" };
-
-function getToken(){ let token=localStorage.getItem("GH_TOKEN"); if(!token){ token=prompt("GitHub Token 입력 (repo read/write 필요)"); if(token) localStorage.setItem("GH_TOKEN",token); } return token; }
-function clearToken(){ localStorage.removeItem("GH_TOKEN"); alert("토큰 삭제됨"); }
-
-function getSyncData(){ return { categories, habits, stages, data, recurrenceList }; }
-function applySyncData(obj){ categories=obj.categories||[]; habits=obj.habits||[]; stages=obj.stages||["없음"]; data=obj.data||{}; recurrenceList=obj.recurrenceList||[]; render(); }
-
-async function GitHubUpload(){
+/* GitHub Upload */
+async function syncToGitHub(){
   try{
     const token=getToken(); if(!token) return;
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(getSyncData(),null,2))));
-    let sha;
-    const check=await fetch(`https://api.github.com/repos/${GITHUB_INFO_SYNC.user}/${GITHUB_INFO_SYNC.repo}/contents/${GITHUB_INFO_SYNC.path}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(check.ok){ const j=await check.json(); sha=j.sha; }
-    const res=await fetch(`https://api.github.com/repos/${GITHUB_INFO_SYNC.user}/${GITHUB_INFO_SYNC.repo}/contents/${GITHUB_INFO_SYNC.path}`,{
-      method:"PUT",
-      headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/json"},
-      body:JSON.stringify({message:"Habit 자동 백업", content, branch:GITHUB_INFO_SYNC.branch, ...(sha?{sha}:{})})
-    });
-    if(res.ok) alert("✅ GitHub 업로드 성공!");
-    else{ const err=await res.json(); alert("❌ 업로드 실패: "+(err.message||"Unknown")); }
-  }catch(e){ console.error(e); alert("❌ 업로드 실패: "+e);}
+    let sha=null;
+    const check=await fetch(GH_API,{headers:{Authorization:`token ${token}`}});
+    if(check.ok){const j=await check.json(); sha=j.sha;}
+    const res=await fetch(GH_API,{method:"PUT",headers:{Authorization:`token ${token}`,"Content-Type":"application/json"},body:JSON.stringify({message:"Habit 자동 백업",content,sha})});
+    if(res.ok) alert("✅ GitHub 업로드 성공!"); else {const err=await res.json();alert("❌ 업로드 실패: "+(err.message||"Unknown"));}
+  }catch(e){console.error(e);alert("❌ 업로드 실패: "+e);}
 }
 
-async function GitHubDownload(){
+/* GitHub Download */
+async function syncFromGitHub(){
   try{
     const token=getToken(); if(!token) return;
-    const res=await fetch(`https://api.github.com/repos/${GITHUB_INFO_SYNC.user}/${GITHUB_INFO_SYNC.repo}/contents/${GITHUB_INFO_SYNC.path}`,{headers:{Authorization:`Bearer ${token}`}});
-    if(res.status===404){ alert("⚠️ GitHub에 파일 없음. 먼저 업로드하세요."); return; }
+    const res=await fetch(GH_API,{headers:{Authorization:`token ${token}`}});
+    if(res.status===404){alert("⚠️ GitHub에 파일 없음. 먼저 업로드하세요."); return;}
     if(!res.ok) throw `HTTP ${res.status}`;
     const j=await res.json();
     const remote=JSON.parse(atob(j.content));
     applySyncData(remote);
-    alert("✅ GitHub에서 내려받기 완료!");
-  }catch(e){ console.error(e); alert("❌ 내려받기 실패: "+e);}
+    alert("✅ GitHub 내려받기 완료!");
+  }catch(e){console.error(e);alert("❌ 내려받기 실패: "+e);}
 }
 
-window.GitHubSync={syncToGitHub:GitHubUpload,syncFromGitHub:GitHubDownload,clearToken};
+/* 전역 노출 */
+window.GitHubSync={syncToGitHub,syncFromGitHub,clearToken};
 window.onload=()=>{ render(); goToday(); }
 </script>
 
