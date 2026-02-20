@@ -2,7 +2,7 @@
 
 const GITHUB = {
   user: "apor76-cmyk",
-  repo: "memory_dark",
+  repo: "practicedata",
   path: "memory_sync.json"
 };
 
