@@ -119,7 +119,7 @@ function exportData(){const blob=new Blob([JSON.stringify({categories,habits,sta
 document.getElementById("importFile").addEventListener("change",e=>{const file=e.target.files[0];const reader=new FileReader();reader.onload=()=>{const obj=JSON.parse(reader.result);categories=obj.categories||[];habits=obj.habits||[];stages=obj.stages||["없음"];data=obj.data||{};recurrenceList=obj.recurrenceList||[];render();};reader.readAsText(file);});
 
 /* ================= GitHub Sync Core ================= */
-const GITHUB={user:"apor76-cmyk",repo:"practicedata",path:"memory_sync.json"};
+const GITHUB={user:"apor76-cmyk",repo:"data",path:"data/practicecheck.json"};
 const GH_API=`https://api.github.com/repos/${GITHUB.user}/${GITHUB.repo}/contents/${GITHUB.path}`;
 const GH_RAW=`https://raw.githubusercontent.com/${GITHUB.user}/${GITHUB.repo}/main/${GITHUB.path}`;
 
