@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Manager Pro FINAL</title>
+
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#111;}
+.dark{--bg:#0f172a;--card:#1e293b;--text:#e5e7eb;}
+body{margin:0;font-family:-apple-system;background:var(--bg);color:var(--text);}
+header{position:sticky;top:0;background:var(--card);padding:10px;display:flex;gap:10px;flex-wrap:wrap;border-bottom:1px solid #ddd;}
+
+.area-bar{
+background:var(--card);
+padding:8px;
+border-bottom:1px solid #ddd;
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+align-items:center;
+}
+
+
+.area-bar button{
+  background:#f1f3f5;          /* 밝은 회색 */
+  color:#111;
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:6px 12px;
+  font-weight:500;
+  transition:all .15s ease;
+  margin-right:10px;
+}
+
+.area-bar button:hover{
+  background:#e9ecef;
+}
+
+button.active{
+  background:#e5e7eb;          /* 선택 상태 */
+  color:#000;
+  border:1px solid #d1d5db;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.08);
+}
+/* ✅ 추가 */
+.area-bar button{ margin-right:8px; }
+ 
+
+.panel{background:var(--card);padding:10px;border-bottom:1px solid #ddd;}
+.container{padding:12px;}
+
+table{border-collapse:collapse;width:100%;min-width:700px;}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+.category-label{padding:2px 6px;border-radius:6px;color:#fff;font-size:12px;}
+.today{background:#fde68a;color:#000;}
+
+button{padding:4px 8px;border:none;border-radius:6px;background:#FF9900;color:#fff;cursor:pointer;}
+button.active{background:#2563eb;}
+
+input,select{padding:4px 6px;border-radius:4px;border:1px solid #ccc;}
+</style>
+</head>
+
+<body>
+
+<header>
+<button onclick="toggleDark()">🌙</button>
+<button onclick="goToday()">오늘</button>
+<input type="date" id="weekPicker">
+
+<button onclick="localBackup()">📦 로컬백업</button>
+<input type="file" id="localFile" style="display:none">
+<button onclick="document.getElementById('localFile').click()">📂 불러오기</button>
+
+<button onclick="GitHubSync.upload()">🔼 GitHub</button>
+<button onclick="GitHubSync.download()">🔽 GitHub</button>
+<button onclick="GitHubSync.clear()">토큰초기화</button>
+</header>
+
+<div class="area-bar">
+<b>영역:</b>
+<div id="areaButtons"></div>
+<button onclick="addArea()">＋</button>
+<button onclick="renameArea()">이름변경</button>
+<button onclick="deleteArea()">삭제</button>
+</div>
+
+<div class="panel">
+<b>관리 패널</b><br><br>
+
+카테고리:
+<select id="categorySelect"></select>
+<input id="categoryName">
+<input type="color" id="categoryColor">
+<button onclick="addCategory()">추가</button>
+<button onclick="updateCategory()">수정</button>
+<button onclick="deleteCategory()">삭제</button>
+<br><br>
+
+습관:
+<select id="habitSelect"></select>
+<input id="habitName">
+<button onclick="addHabit()">추가</button>
+<button onclick="updateHabit()">수정</button>
+<button onclick="deleteHabit()">삭제</button>
+<br><br>
+
+단계:
+<select id="stageSelect"></select>
+<input id="stageName">
+<button onclick="addStage()">추가</button>
+<button onclick="updateStage()">수정</button>
+<button onclick="deleteStage()">삭제</button>
+<br><br>
+
+반복:
+<select id="recList"></select>
+<input type="number" id="recDays" min="1" style="width:80px">
+<input type="color" id="recColor" value="#f87171">
+<button onclick="addRecurrence()">추가</button>
+<button onclick="deleteRecurrence()">삭제</button>
+</div>
+
+<div class="container">
+<h3>📅 주간 기록</h3>
+<table id="table"></table>
+<h3>📊 통계</h3>
+<table id="stats"></table>
+</div>
+
+<script>
+/* ===== AREA DATA ===== */
+let areas=JSON.parse(localStorage.getItem("areas")||"[]");
+let currentAreaIndex=parseInt(localStorage.getItem("currentAreaIndex")||0);
+
+if(areas.length===0){
+areas.push({name:"기본",categories:[],habits:[],stages:["없음"],data:{},recurrenceList:[]});
+}
+
+function getArea(){return areas[currentAreaIndex];}
+function save(){localStorage.setItem("areas",JSON.stringify(areas));localStorage.setItem("currentAreaIndex",currentAreaIndex);}
+
+/* ===== AREA UI ===== */
+function renderAreaBar(){
+areaButtons.innerHTML="";
+areas.forEach((a,i)=>areaButtons.innerHTML+=`<button class="${i===currentAreaIndex?"active":""}" onclick="switchArea(${i})">${a.name}</button>`);
+}
+function switchArea(i){currentAreaIndex=i;render();}
+function addArea(){let name=prompt("이름");if(!name)return;areas.push({name,categories:[],habits:[],stages:["없음"],data:{},recurrenceList:[]});currentAreaIndex=areas.length-1;render();}
+function renameArea(){let name=prompt("새 이름",getArea().name);if(!name)return;getArea().name=name;render();}
+function deleteArea(){if(areas.length===1)return alert("최소 1개 필요");areas.splice(currentAreaIndex,1);currentAreaIndex=0;render();}
+
+/* ===== CORE ===== */
+let currentDate=new Date();
+
+function render(){
+renderAreaBar();
+renderSelects();
+renderTable();
+renderStats();
+save();
+}
+
+function renderSelects(){
+const a=getArea();
+categorySelect.innerHTML=a.categories.map((c,i)=>`<option value="${i}">${c.name}</option>`).join("");
+habitSelect.innerHTML=a.habits.map((h,i)=>`<option value="${i}">${h.name}</option>`).join("");
+stageSelect.innerHTML=a.stages.map((s,i)=>`<option value="${i}">${s}</option>`).join("");
+recList.innerHTML=a.recurrenceList.map((r,i)=>`<option value="${i}">${r.days}일</option>`).join("");
+}
+
+/* CRUD */
+function addCategory(){const a=getArea();a.categories.push({name:categoryName.value,color:categoryColor.value});render();}
+function updateCategory(){const a=getArea();a.categories[categorySelect.value]={name:categoryName.value,color:categoryColor.value};render();}
+function deleteCategory(){const a=getArea();a.categories.splice(categorySelect.value,1);render();}
+function addHabit(){const a=getArea();a.habits.push({name:habitName.value,cat:categorySelect.value});render();}
+function updateHabit(){const a=getArea();let h=a.habits[habitSelect.value];h.name=habitName.value;h.cat=categorySelect.value;render();}
+function deleteHabit(){const a=getArea();a.habits.splice(habitSelect.value,1);render();}
+function addStage(){const a=getArea();a.stages.push(stageName.value);render();}
+function updateStage(){const a=getArea();a.stages[stageSelect.value]=stageName.value;render();}
+function deleteStage(){const a=getArea();if(a.stages.length>1)a.stages.splice(stageSelect.value,1);render();}
+function addRecurrence(){const a=getArea();a.recurrenceList.push({days:parseInt(recDays.value),color:recColor.value});render();}
+function deleteRecurrence(){const a=getArea();a.recurrenceList.splice(recList.value,1);render();}
+
+/* ===== TABLE ===== */
+function getWeek(d){let date=new Date(d);let day=date.getDay();let diff=date.getDate()-day+(day===0?-6:1);let monday=new Date(date.setDate(diff));let arr=[];for(let i=0;i<7;i++){let nd=new Date(monday);nd.setDate(monday.getDate()+i);arr.push(nd);}return arr;}
+
+function renderTable(){
+const a=getArea();
+const week=getWeek(currentDate);
+const today=new Date().toDateString();
+table.innerHTML="";
+let header="<tr><th>습관</th>";
+week.forEach(d=>header+=`<th class="${d.toDateString()==today?"today":""}">${d.getMonth()+1}/${d.getDate()}</th>`);
+header+="</tr>";
+table.innerHTML+=header;
+
+let sorted=[...a.habits].sort((x,y)=>x.cat-y.cat);
+
+sorted.forEach(h=>{
+const cat=a.categories[h.cat]||{name:"",color:"#999"};
+let row=`<tr><td><span class="category-label" style="background:${cat.color}">${cat.name}</span> ${h.name}</td>`;
+
+/* 마지막 완료일 */
+let lastDone=null;
+Object.keys(a.data).forEach(k=>{
+if(k.startsWith(h.name)&&a.data[k]===a.stages.length-1){
+let d=new Date(k.slice(h.name.length));
+if(!lastDone||d>lastDone) lastDone=d;
+}
+});
+
+week.forEach(d=>{
+let key=h.name+d.toDateString();
+let v=a.data[key]||0;
+let style="";
+
+if(lastDone){
+a.recurrenceList.forEach(r=>{
+let diff=Math.floor((d-lastDone)/(1000*60*60*24));
+if(diff===r.days) style=`background:${r.color};color:#fff`;
+});
+}
+
+row+=`<td onclick="cycle('${key}')" style="${style}">${a.stages[v]}</td>`;
+});
+row+="</tr>";
+table.innerHTML+=row;
+});
+}
+
+function cycle(key){
+const a=getArea();
+let v=a.data[key]||0;
+v=(v+1)%a.stages.length;
+a.data[key]=v;
+render();
+}
+
+/* ===== STATS ===== */
+function renderStats(){
+const a=getArea();
+stats.innerHTML="";
+let header="<tr><th>습관</th>";
+a.stages.forEach(s=>header+=`<th>${s}</th>`);
+header+="</tr>";
+stats.innerHTML+=header;
+
+a.habits.forEach(h=>{
+let row=`<tr><td>${h.name}</td>`;
+a.stages.forEach((s,i)=>{
+let count=0;
+Object.keys(a.data).forEach(k=>{if(k.startsWith(h.name)&&a.data[k]==i)count++;});
+row+=`<td>${count}</td>`;
+});
+row+="</tr>";
+stats.innerHTML+=row;
+});
+}
+
+/* ===== LOCAL BACKUP ===== */
+function localBackup(){
+const blob=new Blob([JSON.stringify(areas,null,2)],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="habit_area_backup.json";
+a.click();
+}
+
+document.getElementById("localFile").addEventListener("change",e=>{
+const file=e.target.files[0];
+if(!file) return;
+const reader=new FileReader();
+reader.onload=()=>{
+areas=JSON.parse(reader.result);
+currentAreaIndex=0;
+render();
+};
+reader.readAsText(file);
+});
+
+/* ===== MISC ===== */
+function toggleDark(){document.body.classList.toggle("dark");}
+function goToday(){currentDate=new Date();weekPicker.valueAsDate=currentDate;render();}
+weekPicker.addEventListener("change",e=>{currentDate=new Date(e.target.value);render();});
+
+/* ===== GITHUB ===== */
+const GH={user:"apor76-cmyk",repo:"data",path:"practicecheck.json"};
+const API=`https://api.github.com/repos/${GH.user}/${GH.repo}/contents/${GH.path}`;
+
+function getToken(){let t=localStorage.getItem("GH_TOKEN");if(!t){t=prompt("GitHub Token");if(t)localStorage.setItem("GH_TOKEN",t);}return t;}
+function clearToken(){localStorage.removeItem("GH_TOKEN");alert("삭제됨");}
+
+async function upload(){
+const token=getToken();if(!token)return;
+const content=btoa(unescape(encodeURIComponent(JSON.stringify(areas,null,2))));
+let sha=null;
+const check=await fetch(API,{headers:{Authorization:`token ${token}`}});
+if(check.ok){const j=await check.json();sha=j.sha;}
+await fetch(API,{method:"PUT",headers:{Authorization:`token ${token}`,"Content-Type":"application/json"},body:JSON.stringify({message:"backup",content,sha})});
+alert("업로드 완료");
+}
+
+async function download(){
+const token=getToken();if(!token)return;
+const res=await fetch(API,{headers:{Authorization:`token ${token}`}});
+const j=await res.json();
+areas=JSON.parse(atob(j.content));
+currentAreaIndex=0;
+render();
+alert("다운로드 완료");
+}
+
+window.GitHubSync={upload,download,clear:clearToken};
+
+window.onload=()=>{render();goToday();}
+</script>
+
+</body>
+</html>
