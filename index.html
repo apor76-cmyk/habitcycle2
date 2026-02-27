@@ -286,7 +286,7 @@ function goToday(){currentDate=new Date();weekPicker.valueAsDate=currentDate;ren
 weekPicker.addEventListener("change",e=>{currentDate=new Date(e.target.value);render();});
 
 /* ===== GITHUB ===== */
-const GH={user:"apor76-cmyk",repo:"data",path:"practicecheck.json"};
+const GH={user:"apor76-cmyk",repo:"data",path:"data/practicecheck.json"};
 const API=`https://api.github.com/repos/${GH.user}/${GH.repo}/contents/${GH.path}`;
 
 function getToken(){let t=localStorage.getItem("GH_TOKEN");if(!t){t=prompt("GitHub Token");if(t)localStorage.setItem("GH_TOKEN",t);}return t;}
