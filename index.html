@@ -294,7 +294,10 @@ function clearToken(){localStorage.removeItem("GH_TOKEN");alert("삭제됨");}
 
 async function upload(){
 const token=getToken();if(!token)return;
-const content=btoa(unescape(encodeURIComponent(JSON.stringify(areas,null,2))));
+const jsonStr=JSON.stringify(areas,null,2);
+const bytes=new TextEncoder().encode(jsonStr);
+let binary=""; bytes.forEach(b=>binary+=String.fromCharCode(b));
+const content=btoa(binary);
 let sha=null;
 const check=await fetch(API,{headers:{Authorization:`token ${token}`}});
 if(check.ok){const j=await check.json();sha=j.sha;}
@@ -306,7 +309,10 @@ async function download(){
 const token=getToken();if(!token)return;
 const res=await fetch(API,{headers:{Authorization:`token ${token}`}});
 const j=await res.json();
-areas=JSON.parse(atob(j.content));
+const raw=atob(j.content.replace(/\n/g,""));
+const uint8=new Uint8Array(raw.length);
+for(let i=0;i<raw.length;i++) uint8[i]=raw.charCodeAt(i);
+areas=JSON.parse(new TextDecoder().decode(uint8));
 currentAreaIndex=0;
 render();
 alert("다운로드 완료");
