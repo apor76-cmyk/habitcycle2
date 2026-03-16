@@ -3,35 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Practice Check</title>
+<title>Memory Card</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-/* ══ Design Tokens ══ */
 :root {
   --bg: #f0f2f5;
   --surface: #f8f9fb;
   --card: #ffffff;
   --card2: #f0f2f7;
+  --card-front: #ffffff;
+  --card-back: #eef1fc;
   --text: #1a1d23;
   --text2: #3d4148;
   --sub: #8b909a;
   --border: #e2e5ea;
   --accent: #3a5bd9;
   --accent-light: #eef1fc;
+  --accent2: #22c55e;
   --ok: #16a34a;
   --ok-light: #dcfce7;
+  --no: #dc2626;
+  --no-light: #fee2e2;
   --shadow: 0 2px 10px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 18px rgba(0,0,0,0.09);
-  --radius: 12px;
-  --today-bg: #fef9c3;
-  --today-text: #854d0e;
+  --shadow-card: 0 4px 16px rgba(0,0,0,0.09);
+  --shadow-hover: 0 8px 28px rgba(0,0,0,0.13);
+  --radius: 14px;
 }
 body.dark {
   --bg: #13151a;
   --surface: #1c1f26;
   --card: #222630;
   --card2: #292d38;
+  --card-front: #2a2f3e;
+  --card-back: #1e2340;
   --text: #e8eaf0;
   --text2: #b0b5c0;
   --sub: #636875;
@@ -40,36 +46,38 @@ body.dark {
   --accent-light: #1e2340;
   --ok: #4ade80;
   --ok-light: #14291e;
+  --no: #f87171;
+  --no-light: #2a1515;
   --shadow: 0 2px 10px rgba(0,0,0,0.3);
-  --shadow-md: 0 4px 18px rgba(0,0,0,0.4);
-  --today-bg: #2d2507;
-  --today-text: #fbbf24;
+  --shadow-card: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-hover: 0 8px 28px rgba(0,0,0,0.5);
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   font-family: 'DM Sans', -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Header ── */
 header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  padding: 8px 20px;
-  min-height: 52px;
+  padding: 0 20px;
+  height: 52px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
   box-shadow: var(--shadow);
 }
 .logo {
@@ -77,17 +85,18 @@ header {
   font-weight: 700;
   color: var(--accent);
   letter-spacing: -0.3px;
-  margin-right: 6px;
+  margin-right: 4px;
   white-space: nowrap;
 }
-.header-sep {
-  width: 1px;
-  height: 20px;
-  background: var(--border);
-  margin: 0 2px;
+.header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1;
 }
 
-/* ── Buttons (global) ── */
+/* ── Buttons ── */
 button {
   padding: 6px 13px;
   border: 1px solid var(--border);
@@ -109,19 +118,29 @@ button:hover {
 .btn-primary {
   background: var(--accent);
   color: #fff !important;
-  border-color: transparent;
+  border: none;
   font-weight: 600;
 }
 .btn-primary:hover {
   background: #2d4bc4;
-  border-color: transparent;
+  color: #fff !important;
 }
-.btn-danger {
-  background: #fee2e2;
-  color: #dc2626 !important;
+.btn-ok {
+  background: var(--ok-light);
+  color: var(--ok) !important;
   border-color: transparent;
+  font-weight: 700;
+  font-size: 14px;
 }
-.btn-danger:hover { background: #dc2626; color: #fff !important; }
+.btn-ok:hover { background: var(--ok); color: #fff !important; border-color: transparent; }
+.btn-no {
+  background: var(--no-light);
+  color: var(--no) !important;
+  border-color: transparent;
+  font-weight: 700;
+  font-size: 14px;
+}
+.btn-no:hover { background: var(--no); color: #fff !important; border-color: transparent; }
 
 input, select {
   padding: 6px 11px;
@@ -138,244 +157,410 @@ input:focus, select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-light);
 }
-input[type="color"] {
-  width: 36px;
-  height: 32px;
-  padding: 2px 4px;
-  cursor: pointer;
-}
-input[type="date"] { min-width: 140px; }
 
-/* ── Area bar ── */
-.area-bar {
+/* ── Toolbar panel ── */
+.toolbar {
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  padding: 8px 20px;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.25s ease;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.toolbar.open {
+  max-height: 600px;
+  opacity: 1;
+  padding: 14px 20px;
+}
+.toolbar-row {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.toolbar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  min-width: 52px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--card2);
+  border-radius: 10px;
+  padding: 3px;
+  width: fit-content;
+}
+.tab {
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--sub);
+  transition: all 0.15s;
+  border: none;
+  background: transparent;
+}
+.tab:hover { color: var(--text); background: transparent; border: none; }
+.tab.active {
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+  border: none;
+}
+.tab.active:hover { background: var(--card); color: var(--text); border: none; }
+
+/* ── Category tabs ── */
+#categoryBar {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: center;
 }
-.area-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--sub);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-right: 2px;
-}
-.area-btn {
+#categoryBar button {
   border-radius: 999px;
   padding: 5px 14px;
   font-size: 12.5px;
 }
-.area-btn.active {
+#categoryBar button.active-cat {
   background: var(--accent);
   color: #fff !important;
   border-color: transparent;
   font-weight: 600;
 }
-.area-btn.active:hover { background: #2d4bc4; color: #fff !important; border-color: transparent; }
+#categoryBar button.active-cat:hover { background: #2d4bc4; color: #fff !important; }
 
-/* ── Collapsible manage panel ── */
-.manage-toggle-btn {
-  font-size: 12.5px;
-  padding: 5px 13px;
+/* ── Main layout ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 12px;
+  gap: 8px;
+  width: 100%;
 }
-.manage-panel {
+
+/* ── Panel ── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Nav tabs strip ── */
+.nav-strip {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ── Panels container ── */
+.panel-card {
   background: var(--card);
-  border-bottom: 1px solid var(--border);
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transition: max-height 0.28s ease, opacity 0.2s ease, padding 0.2s;
-  padding: 0 20px;
-}
-.manage-panel.open {
-  max-height: 400px;
-  opacity: 1;
-  padding: 16px 20px;
-}
-.manage-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 14px;
-}
-.manage-section {
-  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 12px 14px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow);
 }
-.manage-section-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--sub);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: 10px;
-}
-.manage-row {
+.panel-row {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
 }
-.manage-row + .manage-row { margin-top: 7px; }
-
-/* ── Main container ── */
-.container {
-  max-width: 1300px;
-  margin: 0 auto;
-  padding: 20px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-/* ── Section card ── */
-.section-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-.section-header {
-  padding: 14px 18px 12px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.section-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.1px;
-}
-.section-body {
-  padding: 0;
-  overflow-x: auto;
-}
-
-/* ── Table ── */
-table {
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 640px;
-  font-size: 13px;
-}
-th {
-  padding: 10px 12px;
-  text-align: center;
-  background: var(--surface);
-  color: var(--sub);
-  font-size: 11.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
-  white-space: nowrap;
-}
-th:first-child { text-align: left; padding-left: 18px; }
-td {
-  padding: 10px 12px;
-  text-align: center;
-  border-bottom: 1px solid var(--border);
-  color: var(--text2);
-  vertical-align: middle;
-}
-td:first-child { text-align: left; padding-left: 18px; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--surface); }
-
-/* Today column highlight */
-.today-col { background: var(--today-bg) !important; color: var(--today-text) !important; }
-th.today-col { color: var(--today-text) !important; }
-
-/* Cycle cell */
-td.cycle-cell {
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: background 0.12s;
-  border-radius: 0;
-  user-select: none;
-}
-td.cycle-cell:hover { filter: brightness(0.94); }
-td.cycle-cell:active { filter: brightness(0.85); }
-
-/* Category badge */
-.cat-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: #fff;
+.section-label {
   font-size: 11px;
   font-weight: 600;
-  margin-right: 6px;
-  vertical-align: middle;
+  color: var(--sub);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
 }
 
-/* Stats table accent */
-#stats td:not(:first-child) {
-  font-weight: 600;
+/* ══════════════════════════════
+   MEMORY GRID
+══════════════════════════════ */
+.grid-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: visible;
+  padding-top: 4px;
+}
+
+.grid {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  transform-origin: top center;
+}
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+
+/* Step slot */
+.slot {
+  width: 180px;
+  height: 240px;
+  margin: 7px;
+  border-radius: 20px;
+  border: 1.5px dashed var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.slot:has(.card) {
+  border-style: solid;
+  border-color: var(--border);
+  background: transparent;
+}
+
+/* Card flip */
+.card {
+  width: 174px;
+  height: 226px;
+  perspective: 900px;
+  position: relative;
+  touch-action: pan-y;
+}
+.card-inner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  transition: transform 0.55s cubic-bezier(.4,0,.2,1);
+  transform-style: preserve-3d;
+  border-radius: 16px;
+}
+.card-front, .card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  padding: 14px 12px;
+  text-align: center;
+  backface-visibility: hidden;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.4;
+  box-shadow: var(--shadow-card);
+  word-break: keep-all;
+}
+.card-front {
+  background: var(--card-front);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+.card-back {
+  background: var(--card-back);
   color: var(--accent);
-}
-#stats td:first-child { color: var(--text); font-weight: 500; }
-
-/* ── Mobile responsive ── */
-@media (max-width: 600px) {
-  header {
-    padding: 8px 12px;
-    gap: 6px;
-  }
-  .logo {
-    font-size: 14px;
-    flex: 0 0 auto;
-  }
-  /* 구분선 모바일에서 숨김 */
-  .header-sep {
-    display: none;
-  }
-  /* 헤더 버튼 그룹 묶기 */
-  .header-group {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-  header button,
-  header input[type="date"] {
-    font-size: 11px;
-    padding: 5px 9px;
-  }
-  header input[type="date"] {
-    min-width: 120px;
-    font-size: 11px;
-  }
-  .area-bar {
-    padding: 8px 12px;
-    gap: 5px;
-  }
-  .manage-panel.open {
-    max-height: 800px;
-  }
-  .manage-grid {
-    grid-template-columns: 1fr;
-  }
-  .container {
-    padding: 12px;
-    gap: 12px;
-  }
+  border: 1.5px solid var(--accent-light);
+  transform: rotateY(180deg);
+  font-size: 17px;
 }
 
-@media (max-width: 400px) {
-  header button,
-  header input[type="date"] {
-    font-size: 10.5px;
-    padding: 4px 7px;
-  }
+/* Action buttons under card */
+.btnRow {
+  display: flex;
+  gap: 7px;
+  margin-top: 7px;
+}
+.btnRow button {
+  width: 74px;
+  height: 34px;
+  padding: 0;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Step number label */
+.step-label {
+  position: absolute;
+  top: 7px;
+  left: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--sub);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Progress bar on slot */
+.slot-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--border);
+  border-radius: 0 0 18px 18px;
+  overflow: hidden;
+}
+.slot-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text2);
+}
+.stat-pill .stat-val {
+  color: var(--accent);
+  font-weight: 700;
+}
+/* ══════════════════════════════
+   확대 학습 오버레이
+══════════════════════════════ */
+#enlargeOverlay{
+  display:none; position:fixed; inset:0; z-index:9000;
+  background:rgba(0,0,0,0.5); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+#enlargeOverlay.visible{ display:flex; }
+#enlargeBox{
+  position:relative; display:flex; flex-direction:column;
+  align-items:center; gap:12px; padding:22px 26px 18px;
+  background:var(--card); border-radius:24px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  border:1px solid var(--border);
+  animation:ePop .2s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes ePop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+#eMeta{ display:flex; align-items:center; justify-content:space-between; width:100%; }
+#eStepBadge{
+  padding:3px 10px; border-radius:999px;
+  background:var(--accent-light); color:var(--accent);
+  font-size:11.5px; font-weight:700;
+}
+#eMode{
+  font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px;
+  background:#fef3c7; color:#b45309;
+}
+#eCloseBtn{
+  width:26px; height:26px; border-radius:50%; padding:0;
+  background:var(--card2); border:1px solid var(--border);
+  font-size:13px; color:var(--sub); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+#eCloseBtn:hover{background:var(--no-light);color:var(--no);border-color:transparent;}
+#eProgressBar{width:100%;height:5px;background:var(--border);border-radius:999px;overflow:hidden;}
+#eProgressFill{height:100%;background:var(--accent);border-radius:999px;transition:width .3s;}
+#eCard{
+  width:360px; height:460px; perspective:1000px; cursor:pointer; flex-shrink:0;
+}
+#eCardInner{
+  width:100%; height:100%; position:relative;
+  transition:transform .55s cubic-bezier(.4,0,.2,1);
+  transform-style:preserve-3d; border-radius:22px;
+}
+#eCardInner.flipped{transform:rotateY(180deg);}
+.eface{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; border-radius:22px;
+  padding:28px 24px; text-align:center;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  box-shadow:var(--shadow-card); word-break:keep-all;
+}
+#eFront{
+  background:var(--card-front); color:var(--text);
+  border:1.5px solid var(--border); font-size:36px; font-weight:700; line-height:1.35;
+}
+#eBack{
+  background:var(--card-back); color:var(--accent);
+  border:1.5px solid var(--accent-light);
+  transform:rotateY(180deg); font-size:28px; font-weight:700; line-height:1.4;
+}
+#eHint{font-size:11px;color:var(--sub);opacity:.6;margin-top:14px;}
+#eBtnRow{ display:flex; gap:16px; }
+#eBtnRow button{
+  width:148px; height:52px; border-radius:14px;
+  font-size:22px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+}
+#eCounter{font-size:12px;color:var(--sub);font-weight:600;}
+
+/* ── 드래그 피드백 ── */
+#eCard {
+  user-select: none;
+  touch-action: none;  /* 터치 스크롤 막고 드래그 처리 */
+}
+#eCard.dragging {
+  transition: none !important;
+}
+#eCard.dragging #eCardInner {
+  transition: none !important;
+}
+#eDragHint {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 72px;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.08s;
+  z-index: 10;
+}
+#eDragHint.show-ok {
+  background: rgba(22,163,74,0.22);
+  color: var(--ok);
+  opacity: 1;
+  border: 3px solid var(--ok);
+}
+#eDragHint.show-no {
+  background: rgba(220,38,38,0.18);
+  color: var(--no);
+  opacity: 1;
+  border: 3px solid var(--no);
+}
+/* 드래그 안내 텍스트 */
+#eDragGuide {
+  font-size: 11px;
+  color: var(--sub);
+  font-weight: 500;
+  opacity: 0.7;
+  letter-spacing: 0.02em;
 }
 </style>
 </head>
@@ -384,370 +569,764 @@ td.cycle-cell:active { filter: brightness(0.85); }
 
 <!-- ── Header ── -->
 <header>
-  <span class="logo">Practice Check</span>
-  <div class="header-sep"></div>
-  <div class="header-group">
+  <span class="logo">🃏 Memory Card</span>
+  <div class="header-actions">
+    <button onclick="document.querySelector('.toolbar').classList.toggle('open')">⚙ 설정</button>
     <button onclick="toggleDark()">◐ 테마</button>
-    <button onclick="goToday()">오늘</button>
-    <input type="date" id="weekPicker">
-  </div>
-  <div class="header-sep"></div>
-  <div class="header-group">
-    <button onclick="localBackup()">↓ 백업</button>
-    <button onclick="document.getElementById('localFile').click()">↑ 불러오기</button>
-    <input type="file" id="localFile" style="display:none">
-  </div>
-  <div class="header-sep"></div>
-  <div class="header-group">
-    <button onclick="GitHubSync.upload()">⬆ GitHub</button>
-    <button onclick="GitHubSync.download()">⬇ GitHub</button>
-    <button onclick="GitHubSync.clear()" style="color:var(--sub);">토큰초기화</button>
+    <button onclick="toggleFullscreen()">⛶ 전체화면</button>
   </div>
 </header>
 
-<!-- ── Area bar ── -->
-<div class="area-bar">
-  <span class="area-label">영역</span>
-  <div id="areaButtons" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;"></div>
-  <button class="area-btn" onclick="addArea()">+ 추가</button>
-  <button class="area-btn" onclick="renameArea()">이름변경</button>
-  <button class="area-btn btn-danger" onclick="deleteArea()">삭제</button>
-  <div style="margin-left:auto;">
-    <button class="manage-toggle-btn" onclick="document.querySelector('.manage-panel').classList.toggle('open')">⚙ 관리</button>
+<!-- ── Toolbar (collapsible) ── -->
+<div class="toolbar" id="toolbar">
+
+  <div class="toolbar-row">
+    <span class="toolbar-label">데이터</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="file" id="upload" accept=".xlsx" style="display:none">
+      <button onclick="document.getElementById('upload').click()">📄 엑셀 불러오기</button>
+    </label>
+    <button onclick="shuffleToggle()">🔀 랜덤</button>
   </div>
-</div>
 
-<!-- ── Manage panel (collapsible) ── -->
-<div class="manage-panel">
-  <div class="manage-grid">
-
-    <div class="manage-section">
-      <div class="manage-section-title">카테고리</div>
-      <div class="manage-row">
-        <select id="categorySelect" style="flex:1;min-width:100px;"></select>
-        <input id="categoryName" placeholder="이름" style="flex:1;min-width:90px;">
-        <input type="color" id="categoryColor" value="#3a5bd9">
-      </div>
-      <div class="manage-row">
-        <button class="btn-primary" onclick="addCategory()">추가</button>
-        <button onclick="updateCategory()">수정</button>
-        <button class="btn-danger" onclick="deleteCategory()">삭제</button>
-      </div>
-    </div>
-
-    <div class="manage-section">
-      <div class="manage-section-title">습관</div>
-      <div class="manage-row">
-        <select id="habitSelect" style="flex:1;min-width:100px;"></select>
-        <input id="habitName" placeholder="습관 이름" style="flex:1;min-width:100px;">
-      </div>
-      <div class="manage-row">
-        <button class="btn-primary" onclick="addHabit()">추가</button>
-        <button onclick="updateHabit()">수정</button>
-        <button class="btn-danger" onclick="deleteHabit()">삭제</button>
-      </div>
-    </div>
-
-    <div class="manage-section">
-      <div class="manage-section-title">단계</div>
-      <div class="manage-row">
-        <select id="stageSelect" style="flex:1;min-width:100px;"></select>
-        <input id="stageName" placeholder="단계 이름" style="flex:1;min-width:100px;">
-      </div>
-      <div class="manage-row">
-        <button class="btn-primary" onclick="addStage()">추가</button>
-        <button onclick="updateStage()">수정</button>
-        <button class="btn-danger" onclick="deleteStage()">삭제</button>
-      </div>
-    </div>
-
-    <div class="manage-section">
-      <div class="manage-section-title">반복 주기</div>
-      <div class="manage-row">
-        <select id="recList" style="flex:1;min-width:80px;"></select>
-        <input type="number" id="recDays" min="1" placeholder="일수" style="width:80px;">
-        <input type="color" id="recColor" value="#f87171">
-      </div>
-      <div class="manage-row">
-        <button class="btn-primary" onclick="addRecurrence()">추가</button>
-        <button class="btn-danger" onclick="deleteRecurrence()">삭제</button>
-      </div>
-    </div>
-
+  <div class="toolbar-row">
+    <span class="toolbar-label">GitHub</span>
+    <button onclick="GitHubSync.syncToGitHub()">⬆ 올리기</button>
+    <button onclick="GitHubSync.syncFromGitHub()">⬇ 내려받기</button>
+    <button onclick="GitHubSync.clearToken()" style="color:var(--sub);">토큰 초기화</button>
   </div>
+
+  <div class="toolbar-row">
+    <span class="toolbar-label">카테고리</span>
+    <div id="categoryBar"></div>
+    <button onclick="addCategory()">+ 추가</button>
+    <button onclick="renameCategory()">이름 변경</button>
+    <button onclick="removeCategory()">삭제</button>
+  </div>
+
 </div>
 
 <!-- ── Main ── -->
-<div class="container">
+<div class="main">
 
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-title">📅 주간 기록</span>
-    </div>
-    <div class="section-body">
-      <table id="table"></table>
+  <!-- Nav tabs + session controls -->
+  <div class="panel-card" style="padding:12px 16px;">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('learn', this)">현재 학습</div>
+          <div class="tab" onclick="switchTab('sessions', this)">세션</div>
+          <div class="tab" onclick="switchTab('completed', this)">완료 단어</div>
+        </div>
+        <button id="enlargeBtn" onclick="startEnlargeSession()"
+          style="background:var(--accent);color:#fff;border:none;font-weight:700;padding:6px 14px;">
+          🔍 확대학습
+        </button>
+      </div>
+      <div class="stats-strip" id="statsStrip">
+        <div class="stat-pill">전체 <span class="stat-val" id="statTotal">0</span></div>
+        <div class="stat-pill">학습중 <span class="stat-val" id="statActive">0</span></div>
+        <div class="stat-pill" style="color:var(--ok);">완료 <span class="stat-val" id="statDone" style="color:var(--ok);">0</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="section-card">
-    <div class="section-header">
-      <span class="section-title">📊 통계</span>
+  <!-- Learn panel -->
+  <div id="learn" class="panel active">
+    <div class="panel-card" style="margin-bottom:12px;padding:12px 16px;">
+      <div class="panel-row">
+        <input id="sessionName" placeholder="세션 이름" style="min-width:160px;">
+        <button class="btn-primary" onclick="saveSession()">저장</button>
+        <span style="font-size:11px;font-weight:600;color:var(--sub);margin-left:8px;">완료 칸 수</span>
+        <input id="maxStepInput" type="number" min="1" max="25" value="20"
+          style="width:60px;text-align:center;font-weight:700;"
+          oninput="applyMaxStep(this.value)" title="학습 완료 기준 칸 수">
+        <span style="font-size:11px;color:var(--sub);">칸</span>
+      </div>
     </div>
-    <div class="section-body">
-      <table id="stats"></table>
+    <div class="grid-wrapper">
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+
+  <!-- 오늘 복습 세션 알림 패널 -->
+  <div id="todayReviewPanel" class="panel-card" style="margin-bottom:8px;padding:12px 16px;display:none;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;color:#f97316;">🔔 오늘 복습 예정</span>
+      <select id="todaySessionSelect" style="min-width:200px;">
+        <option value="">— 세션 선택 —</option>
+      </select>
+      <button class="btn-primary" style="background:#f97316;border-color:transparent;"
+        onclick="loadTodaySession()">바로 학습</button>
+    </div>
+  </div>
+
+  <!-- Sessions panel -->
+  <div id="sessions" class="panel">
+    <div class="panel-card">
+      <p class="section-label">저장된 세션</p>
+      <div class="panel-row">
+        <select id="sessionList" style="min-width:180px;"></select>
+        <button class="btn-primary" onclick="loadSession()">불러오기</button>
+        <button onclick="deleteSession()">삭제</button>
+      </div>
+      <div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <span style="font-size:12px;color:var(--sub);font-weight:500;">백업:</span>
+        <button onclick="exportBackup()">↓ 내보내기</button>
+        <button onclick="document.getElementById('importBackup').click()">↑ 불러오기</button>
+        <input type="file" id="importBackup" accept=".json" style="display:none">
+      </div>
+    </div>
+  </div>
+
+  <!-- Completed panel -->
+  <div id="completed" class="panel">
+    <div class="panel-card">
+      <p class="section-label">완료 단어</p>
+      <div class="panel-row">
+        <select id="completedList" style="min-width:180px;"></select>
+        <button class="btn-primary" onclick="loadCompletedSession()">학습하기</button>
+        <button onclick="deleteCompletedSession()">삭제</button>
+      </div>
+      <div class="panel-row" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <input id="completedName" placeholder="완료 세션 이름" style="min-width:160px;">
+        <button onclick="saveCompletedSession()">저장</button>
+      </div>
     </div>
   </div>
 
 </div>
 
 <script>
-/* ===== AREA DATA ===== */
-let areas = JSON.parse(localStorage.getItem("areas") || "[]");
-let currentAreaIndex = parseInt(localStorage.getItem("currentAreaIndex") || 0);
+/* ══════════════════════════════════════════
+   mcPcSync — memorycard ↔ practicecheck 연동
+══════════════════════════════════════════ */
+const mcPcSync = (function(){
+  const PC_AREAS_KEY   = 'pc_areas'
+  const PC_REPEATS_KEY = 'pc_repeats'
+  const REPEAT_OFFSETS = [1,3,7,30]
 
-if (areas.length === 0) {
-  areas.push({ name:"기본", categories:[], habits:[], stages:["없음"], data:{}, recurrenceList:[] });
-}
+  function getAreas(){try{return JSON.parse(localStorage.getItem(PC_AREAS_KEY)||'[]')}catch{return[]}}
+  function saveAreas(a){localStorage.setItem(PC_AREAS_KEY,JSON.stringify(a))}
+  function getRepeats(){try{return JSON.parse(localStorage.getItem(PC_REPEATS_KEY)||'{}')}catch{return{}}}
+  function saveRepeats(r){localStorage.setItem(PC_REPEATS_KEY,JSON.stringify(r))}
+  function localDate(d){const dt=d||new Date();return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');}
 
-function getArea() { return areas[currentAreaIndex]; }
-function save() {
-  localStorage.setItem("areas", JSON.stringify(areas));
-  localStorage.setItem("currentAreaIndex", currentAreaIndex);
-}
-
-/* ===== AREA UI ===== */
-function renderAreaBar() {
-  const wrap = document.getElementById("areaButtons");
-  wrap.innerHTML = "";
-  areas.forEach((a, i) => {
-    const b = document.createElement("button");
-    b.textContent = a.name;
-    b.className = "area-btn" + (i === currentAreaIndex ? " active" : "");
-    b.onclick = () => switchArea(i);
-    wrap.appendChild(b);
-  });
-}
-function switchArea(i) { currentAreaIndex = i; render(); }
-function addArea() {
-  const name = prompt("영역 이름"); if (!name) return;
-  areas.push({ name, categories:[], habits:[], stages:["없음"], data:{}, recurrenceList:[] });
-  currentAreaIndex = areas.length - 1; render();
-}
-function renameArea() {
-  const name = prompt("새 이름", getArea().name); if (!name) return;
-  getArea().name = name; render();
-}
-function deleteArea() {
-  if (areas.length === 1) return alert("최소 1개 필요");
-  areas.splice(currentAreaIndex, 1); currentAreaIndex = 0; render();
-}
-
-/* ===== CORE ===== */
-let currentDate = new Date();
-
-function render() {
-  renderAreaBar();
-  renderSelects();
-  renderTable();
-  renderStats();
-  save();
-}
-
-function renderSelects() {
-  const a = getArea();
-  document.getElementById("categorySelect").innerHTML = a.categories.map((c,i) => `<option value="${i}">${c.name}</option>`).join("");
-  document.getElementById("habitSelect").innerHTML    = a.habits.map((h,i) => `<option value="${i}">${h.name}</option>`).join("");
-  document.getElementById("stageSelect").innerHTML   = a.stages.map((s,i) => `<option value="${i}">${s}</option>`).join("");
-  document.getElementById("recList").innerHTML        = a.recurrenceList.map((r,i) => `<option value="${i}">${r.days}일</option>`).join("");
-}
-
-/* ── CRUD ── */
-function addCategory()    { const a=getArea(); a.categories.push({name:document.getElementById("categoryName").value, color:document.getElementById("categoryColor").value}); render(); }
-function updateCategory() { const a=getArea(); a.categories[document.getElementById("categorySelect").value]={name:document.getElementById("categoryName").value, color:document.getElementById("categoryColor").value}; render(); }
-function deleteCategory() { const a=getArea(); a.categories.splice(document.getElementById("categorySelect").value,1); render(); }
-function addHabit()    { const a=getArea(); a.habits.push({name:document.getElementById("habitName").value, cat:document.getElementById("categorySelect").value}); render(); }
-function updateHabit() { const a=getArea(); let h=a.habits[document.getElementById("habitSelect").value]; h.name=document.getElementById("habitName").value; h.cat=document.getElementById("categorySelect").value; render(); }
-function deleteHabit() { const a=getArea(); a.habits.splice(document.getElementById("habitSelect").value,1); render(); }
-function addStage()    { const a=getArea(); a.stages.push(document.getElementById("stageName").value); render(); }
-function updateStage() { const a=getArea(); a.stages[document.getElementById("stageSelect").value]=document.getElementById("stageName").value; render(); }
-function deleteStage() { const a=getArea(); if(a.stages.length>1)a.stages.splice(document.getElementById("stageSelect").value,1); render(); }
-function addRecurrence()    { const a=getArea(); a.recurrenceList.push({days:parseInt(document.getElementById("recDays").value), color:document.getElementById("recColor").value}); render(); }
-function deleteRecurrence() { const a=getArea(); a.recurrenceList.splice(document.getElementById("recList").value,1); render(); }
-
-/* ===== TABLE ===== */
-function getWeek(d) {
-  let date = new Date(d);
-  let day  = date.getDay();
-  let diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  let monday = new Date(date.setDate(diff));
-  let arr = [];
-  for (let i = 0; i < 7; i++) {
-    let nd = new Date(monday); nd.setDate(monday.getDate() + i); arr.push(nd);
+  function ensureArea(catName){
+    const areas=getAreas();
+    if(!areas.find(a=>a.name===catName)){areas.push({name:catName,habits:[],data:{}});saveAreas(areas);}
   }
-  return arr;
+  function ensureHabit(catName,sessionName){
+    const areas=getAreas();
+    let area=areas.find(a=>a.name===catName);
+    if(!area){area={name:catName,habits:[],data:{}};areas.push(area);}
+    if(!area.habits.find(h=>h.name===sessionName)){area.habits.push({name:sessionName,source:'mc'});saveAreas(areas);}
+  }
+  function markDone(catName,sessionName){
+    const today=new Date(),todayStr=today.toDateString();
+    const areas=getAreas();
+    let area=areas.find(a=>a.name===catName);
+    if(!area){area={name:catName,habits:[],data:{}};areas.push(area);}
+    if(!area.habits.find(h=>h.name===sessionName)) area.habits.push({name:sessionName,source:'mc'});
+    area.data[sessionName+todayStr]=1;
+    saveAreas(areas);
+    // 반복 스케줄
+    const repeats=getRepeats(),rKey=catName+'::'+sessionName,existing=repeats[rKey];
+    if(existing){const base=new Date(existing.baseDate+'T12:00:00');today.setHours(12,0,0,0);if(Math.round(Math.abs(today-base)/86400000)<30)return;}
+    const due=REPEAT_OFFSETS.map(d=>{const dt=new Date(today);dt.setDate(dt.getDate()+d);return localDate(dt);});
+    repeats[rKey]={baseDate:localDate(today),due};saveRepeats(repeats);
+  }
+  function checkRepeatToday(catName,sessionName){
+    const today=localDate(),rep=getRepeats()[catName+'::'+sessionName];
+    return rep?rep.due.includes(today):false;
+  }
+  /* 오늘 복습 예정 세션 목록 */
+  function getTodaySessions(){
+    const today=localDate(),repeats=getRepeats(),result=[];
+    Object.keys(repeats).forEach(rKey=>{
+      const rep=repeats[rKey];
+      if(rep.due.includes(today)){const[cat,sess]=rKey.split('::');result.push({cat,sess});}
+    });
+    return result;
+  }
+  return{ensureArea,ensureHabit,markDone,checkRepeatToday,getTodaySessions};
+})()
+
+/* ===== 카테고리 ===== */
+const CAT_KEY="MP_categories";
+const CUR_CAT_KEY="MP_currentCategory";
+function getCats(){let l=JSON.parse(localStorage.getItem(CAT_KEY)||"[]");if(!l.length){l=["기본"];localStorage.setItem(CAT_KEY,JSON.stringify(l));}return l;}
+function getCurrentCat(){return localStorage.getItem(CUR_CAT_KEY)||"기본";}
+function setCurrentCat(c){localStorage.setItem(CUR_CAT_KEY,c);renderCategoryBar();loadCategoryData();if(typeof renderTodayReview==='function')renderTodayReview();}
+function catKey(base){return base+"_"+getCurrentCat();}
+
+function renderCategoryBar(){
+  const bar=document.getElementById("categoryBar");
+  bar.innerHTML="";
+  const cur=getCurrentCat();
+  getCats().forEach(c=>{
+    const b=document.createElement("button");
+    b.textContent=c;
+    if(c===cur) b.classList.add("active-cat");
+    b.onclick=()=>setCurrentCat(c);
+    bar.appendChild(b);
+  });
 }
 
-const DAY_LABELS = ["월","화","수","목","금","토","일"];
+function addCategory(){const n=prompt("카테고리 이름");if(!n)return;const l=getCats();if(l.includes(n))return alert("이미 존재");l.push(n);localStorage.setItem(CAT_KEY,JSON.stringify(l));setCurrentCat(n);mcPcSync.ensureArea(n);}
+function renameCategory(){const cur=getCurrentCat();if(cur==="기본")return alert("기본 변경 불가");const n=prompt("새 이름",cur);if(!n)return;localStorage.setItem(CAT_KEY,JSON.stringify(getCats().map(c=>c===cur?n:c)));setCurrentCat(n);}
+function removeCategory(){const cur=getCurrentCat();if(cur==="기본")return alert("기본 삭제 불가");if(!confirm("삭제할까요?"))return;localStorage.setItem(CAT_KEY,JSON.stringify(getCats().filter(c=>c!==cur)));setCurrentCat("기본");}
 
-function renderTable() {
-  const a    = getArea();
-  const week = getWeek(currentDate);
-  const todayStr = new Date().toDateString();
-  const tbl  = document.getElementById("table");
-  tbl.innerHTML = "";
-
-  // Header
-  let header = "<thead><tr><th>습관</th>";
-  week.forEach((d, i) => {
-    const isToday = d.toDateString() === todayStr;
-    header += `<th class="${isToday ? "today-col" : ""}">${DAY_LABELS[i]}<br><span style="font-size:10px;font-weight:500;opacity:0.8;">${d.getMonth()+1}/${d.getDate()}</span></th>`;
-  });
-  header += "</tr></thead>";
-  tbl.innerHTML += header;
-
-  const sorted = [...a.habits].sort((x, y) => x.cat - y.cat);
-  let tbody = "<tbody>";
-
-  sorted.forEach(h => {
-    const cat = a.categories[h.cat] || { name:"", color:"#8b909a" };
-
-    // last completed date
-    let lastDone = null;
-    Object.keys(a.data).forEach(k => {
-      if (k.startsWith(h.name) && a.data[k] === a.stages.length - 1) {
-        let d = new Date(k.slice(h.name.length));
-        if (!lastDone || d > lastDone) lastDone = d;
-      }
-    });
-
-    let row = `<tr><td><span class="cat-badge" style="background:${cat.color}">${cat.name}</span>${h.name}</td>`;
-    week.forEach((d, di) => {
-      const isToday = d.toDateString() === todayStr;
-      const key = h.name + d.toDateString();
-      const v   = a.data[key] || 0;
-      const stageLabel = a.stages[v];
-
-      // recurrence highlight
-      let cellStyle = isToday ? `background:var(--today-bg);color:var(--today-text);` : "";
-      let cellTitle  = "";
-      if (lastDone) {
-        a.recurrenceList.forEach(r => {
-          const diff = Math.floor((d - lastDone) / (1000*60*60*24));
-          if (diff === r.days) { cellStyle = `background:${r.color};color:#fff;`; cellTitle = `반복 ${r.days}일`; }
-        });
-      }
-
-      // stage color tint when not default
-      const stageOpacity = v === 0 ? "opacity:0.35;" : "";
-
-      row += `<td class="cycle-cell${isToday ? " today-col" : ""}" onclick="cycle('${key}')" style="${cellStyle}" title="${cellTitle}">
-        <span style="${stageOpacity}">${stageLabel}</span>
-      </td>`;
-    });
-    row += "</tr>";
-    tbody += row;
-  });
-
-  tbody += "</tbody>";
-  tbl.innerHTML += tbody;
+/* ===== 전체 데이터 ===== */
+function collectAllCategoryData(){
+  const cats=getCats();const pack={categories:cats,data:{}};
+  cats.forEach(c=>{pack.data[c]={memoryPathState:localStorage.getItem("memoryPathState_"+c)||"{}",sessions:localStorage.getItem("sessions_"+c)||"{}",completedSessions:localStorage.getItem("completedSessions_"+c)||"{}"}});
+  pack.darkMode=localStorage.getItem("darkMode")||"false";return pack;
+}
+function applyAllCategoryData(pack){
+  if(!pack)return;
+  if(pack.categories)localStorage.setItem(CAT_KEY,JSON.stringify(pack.categories));
+  if(pack.data){Object.keys(pack.data).forEach(c=>{localStorage.setItem("memoryPathState_"+c,pack.data[c].memoryPathState||"{}");localStorage.setItem("sessions_"+c,pack.data[c].sessions||"{}");localStorage.setItem("completedSessions_"+c,pack.data[c].completedSessions||"{}");});}
+  if(pack.darkMode)localStorage.setItem("darkMode",pack.darkMode);
+  renderCategoryBar();loadCategoryData();
 }
 
-function cycle(key) {
-  const a = getArea();
-  let v = a.data[key] || 0;
-  v = (v + 1) % a.stages.length;
-  a.data[key] = v;
+/* ===== GitHub ===== */
+const GITHUB={user:"apor76-cmyk",repo:"data",branch:"main",path:"data/memory_orange.json"};
+const GH_API=`https://api.github.com/repos/${GITHUB.user}/${GITHUB.repo}/contents/${GITHUB.path}`;
+function utf8_to_b64(str){return btoa(new Uint8Array(new TextEncoder().encode(str)).reduce((d,b)=>d+String.fromCharCode(b),''));}
+function b64_to_utf8(b64){return new TextDecoder().decode(Uint8Array.from(atob(b64),c=>c.charCodeAt(0)));}
+function getToken(){let t=localStorage.getItem("GH_TOKEN");if(!t){t=prompt("GitHub Token 입력");if(t)localStorage.setItem("GH_TOKEN",t);}return t;}
+
+async function syncToGitHub(silent=false){
+  const token=getToken();if(!token)return;
+  try{
+    const content=utf8_to_b64(JSON.stringify(collectAllCategoryData(),null,2));
+    let sha;const check=await fetch(GH_API,{headers:{Authorization:`Bearer ${token}`}});
+    if(check.ok){const j=await check.json();sha=j.sha;}
+    const res=await fetch(GH_API,{method:"PUT",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({message:"MemoryPath 백업",content,branch:GITHUB.branch,...(sha?{sha}:{})})});
+    if(!silent){ if(res.ok) alert("업로드 완료"); else alert("업로드 실패: "+res.status); }
+    else if(!res.ok) throw new Error("업로드 실패: "+res.status);
+  }catch(e){ if(!silent) alert("오류: "+e.message); else throw e; }
+}
+async function syncFromGitHub(){
+  const token=getToken();if(!token)return;
+  const res=await fetch(GH_API,{headers:{Authorization:`Bearer ${token}`}});
+  if(!res.ok)return alert("데이터 없음");
+  const j=await res.json();applyAllCategoryData(JSON.parse(b64_to_utf8(j.content)));alert("동기화 완료");
+}
+window.GitHubSync={syncToGitHub,syncFromGitHub,clearToken:()=>{localStorage.removeItem("GH_TOKEN");alert("토큰 삭제됨");}};
+
+/* ── AutoSync ── */
+;(function setupMemoryAutoSync(){
+  const badge=document.createElement("div");
+  badge.id="autoSyncBadge";
+  badge.style.cssText="position:fixed;top:8px;left:50%;transform:translateX(-50%);z-index:99999;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,0.65);color:#fff;pointer-events:none;opacity:0;transition:opacity 0.4s;white-space:nowrap;";
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(badge));
+  function showBadge(text,color="#374151"){badge.textContent=text;badge.style.background=color;badge.style.opacity="1";clearTimeout(badge._h);badge._h=setTimeout(()=>badge.style.opacity="0",3500);}
+  let timer=null;
+  const watchPrefixes=["memoryPathState_","sessions_","completedSessions_","MP_categories"];
+  const _origSet=localStorage.setItem.bind(localStorage);
+  localStorage.setItem=function(key,val){
+    _origSet(key,val);
+    if(!localStorage.getItem("GH_TOKEN"))return;
+    if(watchPrefixes.some(p=>key.startsWith(p))){
+      clearTimeout(timer);
+      showBadge("✏️ 변경 감지 — 45초 후 자동 저장","#92400e");
+      timer=setTimeout(async()=>{
+        showBadge("☁️ 자동 저장 중...","#1d4ed8");
+        try{await syncToGitHub(true);showBadge("✅ 자동 저장 완료","#065f46");}
+        catch(e){showBadge("❌ 자동 저장 실패","#991b1b");}
+      },45000);
+    }
+  };
+})();
+
+/* ===== 학습 로직 ===== */
+const layout=[5,5,5,5];
+let maxStep = 20;   // 동적 변경 가능
+let words=[], positions=[], completedWords=[], originalWords=[], isShuffled=false;
+
+function applyMaxStep(val){
+  const n = Math.max(1, Math.min(25, parseInt(val)||20));
+  maxStep = n;
+  localStorage.setItem("mp_maxStep", n);
   render();
 }
 
-/* ===== STATS ===== */
-function renderStats() {
-  const a = getArea();
-  const stbl = document.getElementById("stats");
-  stbl.innerHTML = "";
+function loadCategoryData(){
+  const saved=localStorage.getItem(catKey("memoryPathState"));
+  if(saved){const s=JSON.parse(saved);words=s.words||[];positions=s.positions||[];completedWords=s.completedWords||[];originalWords=s.originalWords||[];}
+  else{words=[];positions=[];completedWords=[];originalWords=[];}
+  loadSessionList();loadCompletedList();render();
+}
+function saveState(){localStorage.setItem(catKey("memoryPathState"),JSON.stringify({words,positions,completedWords,originalWords}));}
+function saveSession(){const name=document.getElementById("sessionName").value;if(!name)return alert("이름 입력");const sessions=JSON.parse(localStorage.getItem(catKey("sessions"))||"{}");sessions[name]={words,positions,completedWords};localStorage.setItem(catKey("sessions"),JSON.stringify(sessions));mcPcSync.ensureHabit(getCurrentCat(),name);loadSessionList();}
+function loadSession(){const sessions=JSON.parse(localStorage.getItem(catKey("sessions"))||"{}");const s=sessions[document.getElementById("sessionList").value];if(!s)return;words=s.words;positions=s.positions;completedWords=s.completedWords;render();}
+function deleteSession(){const sessions=JSON.parse(localStorage.getItem(catKey("sessions"))||"{}");delete sessions[document.getElementById("sessionList").value];localStorage.setItem(catKey("sessions"),JSON.stringify(sessions));loadSessionList();}
+function loadSessionList(){const sessions=JSON.parse(localStorage.getItem(catKey("sessions"))||"{}");const sl=document.getElementById("sessionList");sl.innerHTML="";Object.keys(sessions).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;sl.appendChild(o);});}
+function saveCompletedSession(){const name=document.getElementById("completedName").value;if(!completedWords.length)return alert("완료 없음");const sessions=JSON.parse(localStorage.getItem(catKey("completedSessions"))||"{}");sessions[name]={words:completedWords,positions:completedWords.map(()=>0)};localStorage.setItem(catKey("completedSessions"),JSON.stringify(sessions));loadCompletedList();}
+function loadCompletedSession(){const sessions=JSON.parse(localStorage.getItem(catKey("completedSessions"))||"{}");const s=sessions[document.getElementById("completedList").value];if(!s)return;words=s.words;positions=s.positions;completedWords=[];render();}
+function deleteCompletedSession(){const sessions=JSON.parse(localStorage.getItem(catKey("completedSessions"))||"{}");delete sessions[document.getElementById("completedList").value];localStorage.setItem(catKey("completedSessions"),JSON.stringify(sessions));loadCompletedList();}
+function loadCompletedList(){const sessions=JSON.parse(localStorage.getItem(catKey("completedSessions"))||"{}");const cl=document.getElementById("completedList");cl.innerHTML="";Object.keys(sessions).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k;cl.appendChild(o);});}
 
-  let header = "<thead><tr><th>습관</th>";
-  a.stages.forEach(s => header += `<th>${s}</th>`);
-  header += "</tr></thead><tbody>";
-  stbl.innerHTML += header;
+function shuffleToggle(){
+  if(!words.length)return;
+  if(!isShuffled){originalWords=JSON.parse(JSON.stringify(words));words.sort(()=>Math.random()-0.5);positions=words.map(()=>0);isShuffled=true;}
+  else{words=JSON.parse(JSON.stringify(originalWords));positions=words.map(()=>0);isShuffled=false;}
+  render();
+}
+function toggleDark(){document.body.classList.toggle("dark");localStorage.setItem("darkMode",document.body.classList.contains("dark"));}
+function toggleFullscreen(){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
 
-  let tbody = "";
-  a.habits.forEach(h => {
-    let row = `<tr><td>${h.name}</td>`;
-    a.stages.forEach((s, i) => {
-      let count = 0;
-      Object.keys(a.data).forEach(k => { if (k.startsWith(h.name) && a.data[k] == i) count++; });
-      row += `<td>${count > 0 ? count : "<span style='color:var(--border)'>—</span>"}</td>`;
-    });
-    row += "</tr>";
-    tbody += row;
-  });
-  stbl.innerHTML += tbody + "</tbody>";
+function switchTab(id, tabEl){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  tabEl.classList.add("active");
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
-/* ===== LOCAL BACKUP ===== */
-function localBackup() {
-  const json = JSON.stringify(areas, null, 2);
-  // UTF-8 BOM 추가 → 메모장 등에서 한글 깨짐 방지
-  const blob = new Blob(["\uFEFF" + json], { type:"application/json;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "habit_area_backup.json";
-  a.click();
-}
-document.getElementById("localFile").addEventListener("change", e => {
-  const file = e.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  // UTF-8로 명시 읽기 → BOM 있어도 없어도 한글 정상 처리
-  reader.onload = () => {
-    const text = reader.result.replace(/^\uFEFF/, ""); // BOM 제거 후 파싱
-    areas = JSON.parse(text);
-    currentAreaIndex = 0;
-    render();
-  };
-  reader.readAsText(file, "UTF-8");
+document.getElementById("upload").addEventListener("change",e=>{
+  const file=e.target.files[0];const reader=new FileReader();
+  reader.onload=ev=>{
+    const data=new Uint8Array(ev.target.result);const wb=XLSX.read(data,{type:"array"});
+    const sheet=wb.Sheets[wb.SheetNames[0]];const json=XLSX.utils.sheet_to_json(sheet);
+    words=json.map(r=>{const k=Object.keys(r);return{word:r[k[0]],meaning:r[k[1]]};});
+    originalWords=JSON.parse(JSON.stringify(words));positions=words.map(()=>0);completedWords=[];saveState();render();
+  };reader.readAsArrayBuffer(file);
 });
 
-/* ===== MISC ===== */
-function toggleDark() { document.body.classList.toggle("dark"); }
-function goToday() { currentDate = new Date(); document.getElementById("weekPicker").valueAsDate = currentDate; render(); }
-document.getElementById("weekPicker").addEventListener("change", e => { currentDate = new Date(e.target.value); render(); });
-
-/* ===== GITHUB ===== */
-const GH  = { user:"apor76-cmyk", repo:"data", path:"data/practicecheck.json" };
-const API = `https://api.github.com/repos/${GH.user}/${GH.repo}/contents/${GH.path}`;
-
-function getToken() { let t=localStorage.getItem("GH_TOKEN"); if(!t){t=prompt("GitHub Token"); if(t) localStorage.setItem("GH_TOKEN",t);} return t; }
-function clearToken() { localStorage.removeItem("GH_TOKEN"); alert("삭제됨"); }
-
-async function upload() {
-  const token = getToken(); if (!token) return;
-  const jsonStr = JSON.stringify(areas, null, 2);
-  const bytes = new TextEncoder().encode(jsonStr);
-  let binary = ""; bytes.forEach(b => binary += String.fromCharCode(b));
-  const content = btoa(binary);
-  let sha = null;
-  const check = await fetch(API, { headers:{ Authorization:`token ${token}` } });
-  if (check.ok) { const j = await check.json(); sha = j.sha; }
-  await fetch(API, { method:"PUT", headers:{ Authorization:`token ${token}`, "Content-Type":"application/json" }, body: JSON.stringify({ message:"backup", content, sha }) });
-  alert("업로드 완료");
+function moveCard(i,step){
+  if(step>0){positions[i]++;if(positions[i]>=maxStep){const w=words[i];if(!completedWords.some(c=>c.word===w.word))completedWords.push(w);positions[i]=maxStep;}}
+  else positions[i]=0;
+  saveState();render();
+  // 학습 완료(모든 카드 maxStep 도달)시 pc 세션 항목 체크
+  if(words.length && words.every((_,idx)=>positions[idx]>=maxStep)){
+    // 현재 세션 이름 찾기 (세션 패널 select에서)
+    const sl=document.getElementById("sessionList");
+    const sName=sl&&sl.value?sl.value:null;
+    if(sName) mcPcSync.markDone(getCurrentCat(), sName);
+  }
 }
 
-async function download() {
-  const token = getToken(); if (!token) return;
-  const res = await fetch(API, { headers:{ Authorization:`token ${token}` } });
-  const j = await res.json();
-  const raw = atob(j.content.replace(/\n/g,""));
-  const uint8 = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) uint8[i] = raw.charCodeAt(i);
-  areas = JSON.parse(new TextDecoder().decode(uint8));
-  currentAreaIndex = 0; render(); alert("다운로드 완료");
+function updateStats(){
+  const total=words.length;
+  const active=words.filter((_,i)=>positions[i]>0&&positions[i]<maxStep).length;
+  const done=completedWords.length;
+  document.getElementById("statTotal").textContent=total;
+  document.getElementById("statActive").textContent=active;
+  document.getElementById("statDone").textContent=done;
 }
 
-window.GitHubSync = { upload, download, clear: clearToken };
+function render(){
+  const grid=document.getElementById("grid");
+  grid.innerHTML="";
+  let stepIndex=0;
 
-window.onload = () => { render(); goToday(); };
+  layout.forEach(rc=>{
+    const row=document.createElement("div");
+    row.className="row";
+
+    for(let i=0;i<rc;i++){
+      const slot=document.createElement("div");
+      slot.className="slot";
+
+      // step label
+      const sl=document.createElement("div");
+      sl.className="step-label";
+      sl.textContent="Lv "+(stepIndex+1);
+      slot.appendChild(sl);
+
+      // progress bar
+      const pb=document.createElement("div");
+      pb.className="slot-progress";
+      const pf=document.createElement("div");
+      pf.className="slot-progress-fill";
+      pf.style.width=((stepIndex+1)/maxStep*100)+"%";
+      pb.appendChild(pf);
+      slot.appendChild(pb);
+
+      const idx=positions.findIndex(p=>p===stepIndex);
+      const w=idx!==-1?words[idx]:null;
+
+      if(w){
+        const card=document.createElement("div");
+        card.className="card";
+        const inner=document.createElement("div");
+        inner.className="card-inner";
+        const f=document.createElement("div");
+        f.className="card-front";
+        f.innerText=w.word;
+        const b=document.createElement("div");
+        b.className="card-back";
+        b.innerText=w.meaning;
+        inner.append(f,b);
+        card.appendChild(inner);
+        slot.appendChild(card);
+
+        card.onclick=()=>{inner.style.transform=inner.style.transform==="rotateY(180deg)"?"":"rotateY(180deg)";};
+        let startX=0;
+        card.addEventListener("touchstart",e=>startX=e.touches[0].clientX);
+        card.addEventListener("touchend",e=>{const diff=e.changedTouches[0].clientX-startX;if(diff>40)moveCard(idx,1);if(diff<-40)moveCard(idx,-1);});
+
+        const btnRow=document.createElement("div");
+        btnRow.className="btnRow";
+        const ok=document.createElement("button");
+        ok.textContent="O"; ok.className="btn-ok";
+        ok.onclick=e=>{e.stopPropagation();moveCard(idx,1);};
+        const no=document.createElement("button");
+        no.textContent="X"; no.className="btn-no";
+        no.onclick=e=>{e.stopPropagation();moveCard(idx,-1);};
+        btnRow.append(ok,no);
+        slot.appendChild(btnRow);
+      }
+
+      row.appendChild(slot);
+      stepIndex++;
+    }
+    grid.appendChild(row);
+  });
+
+  autoScaleGrid();
+  updateStats();
+}
+
+function autoScaleGrid(){
+  const grid=document.querySelector(".grid");
+  if(!grid) return;
+
+  // 슬롯 1개 = 180+14 = 194px 가로, 240+14 = 254px 세로 (margin 포함)
+  const slotW = 194, slotH = 254;
+  const cols = 5, rows = 4;
+  const totalW = slotW * cols;
+  const totalH = slotH * rows;
+
+  // 사용 가능한 공간: 헤더(52) + 탭바(~62) + 세션행(~56) + 여백
+  const headerH = document.querySelector("header").offsetHeight || 52;
+  const toolbarH = document.querySelector(".toolbar.open") ? (document.querySelector(".toolbar").offsetHeight||0) : 0;
+  const topCardH = document.querySelector(".panel-card")?.offsetHeight || 60;
+  const sessionBarH = document.querySelector("#learn .panel-card")?.offsetHeight || 52;
+  const usedH = headerH + toolbarH + topCardH + sessionBarH + 48; // 48 = gap + padding
+
+  const availW = window.innerWidth - 24;           // 좌우 여백 최소화
+  const availH = window.innerHeight - usedH;
+
+  const scaleW = availW / totalW;
+  const scaleH = availH / totalH;
+  let scale = Math.min(scaleW, scaleH);
+  if(scale < 0.3) scale = 0.3;
+  // 상한 제거 — 화면이 크면 카드도 그대로 크게
+
+  grid.style.transform = `scale(${scale})`;
+  grid.style.transformOrigin = "top center";
+
+  const wrapper = document.querySelector(".grid-wrapper");
+  if(wrapper){
+    wrapper.style.height = (totalH * scale) + "px";
+    wrapper.style.minHeight = "unset";
+  }
+}
+window.addEventListener("resize",autoScaleGrid);
+
+function exportBackup(){
+  const blob=new Blob([JSON.stringify(collectAllCategoryData(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="MemoryPath_Backup.json";a.click();
+}
+document.getElementById("importBackup").addEventListener("change",e=>{
+  const file=e.target.files[0];const reader=new FileReader();
+  reader.onload=ev=>{applyAllCategoryData(JSON.parse(ev.target.result));alert("불러오기 완료");};
+  reader.readAsText(file);
+});
+
+/* ══ 오늘 복습 세션 패널 ══ */
+function renderTodayReview(){
+  const sessions = mcPcSync.getTodaySessions()
+  const panel    = document.getElementById('todayReviewPanel')
+  const sel      = document.getElementById('todaySessionSelect')
+  if(!sessions.length){ panel.style.display='none'; return; }
+
+  // 현재 카테고리에 해당하는 세션만 필터
+  const curCat = getCurrentCat()
+  const mine   = sessions.filter(s => s.cat === curCat)
+
+  if(!mine.length){ panel.style.display='none'; return; }
+
+  panel.style.display='block'
+  sel.innerHTML='<option value="">— 세션 선택 —</option>'
+  mine.forEach(s=>{
+    const o=document.createElement('option')
+    o.value=s.sess; o.textContent='🔔 '+s.sess; sel.appendChild(o)
+  })
+}
+
+function loadTodaySession(){
+  const name=document.getElementById('todaySessionSelect').value; if(!name)return;
+  const sessions=JSON.parse(localStorage.getItem(catKey("sessions"))||"{}");
+  const s=sessions[name]; if(!s)return alert("세션 데이터가 없습니다. 세션 패널에서 먼저 저장하세요.");
+  words=s.words; positions=s.positions; completedWords=s.completedWords||[]; render();
+  // 세션 select 도 동기화
+  const sl=document.getElementById('sessionList');
+  if(sl) sl.value=name;
+}
+
+window.onload=()=>{
+  renderCategoryBar();
+  loadCategoryData();
+  renderTodayReview();
+  if(localStorage.getItem("darkMode")==="true")document.body.classList.add("dark");
+  const saved = parseInt(localStorage.getItem("mp_maxStep")||"20");
+  maxStep = Math.max(1, Math.min(25, saved));
+  const inp = document.getElementById("maxStepInput");
+  if(inp) inp.value = maxStep;
+};
 </script>
 
+<!-- 확대 학습 오버레이 -->
+<div id="enlargeOverlay">
+  <div id="enlargeBox">
+    <div id="eMeta">
+      <span id="eStepBadge">Lv 1</span>
+      <span id="eMode" style="display:none;">⚡빈칸채우기</span>
+      <span id="eCounter"></span>
+      <button id="eCloseBtn" onclick="eClose()">✕</button>
+    </div>
+    <div id="eProgressBar"><div id="eProgressFill"></div></div>
+    <div id="eCard" onclick="eFlip()">
+      <div id="eCardInner">
+        <div class="eface" id="eFront">
+          <div id="eWord"></div>
+          <div id="eHint">탭하여 뒤집기</div>
+        </div>
+        <div class="eface" id="eBack"><div id="eMeaning"></div></div>
+      </div>
+      <div id="eDragHint"></div>
+    </div>
+    <div id="eBtnRow">
+      <button class="btn-no" onclick="eAnswer(-1)">X</button>
+      <button class="btn-ok" onclick="eAnswer(1)">O</button>
+    </div>
+    <div id="eDragGuide">← 오답 &nbsp;|&nbsp; 정답 →</div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   확대 학습 — 지렁이 이동
+
+   라운드 구성: 높은 슬롯 → ... → 슬롯1 → 모음 카드 1장
+   ① 슬롯에 카드 있으면 → O/X (O: 한 칸 위, X: 모음으로)
+   ② 슬롯이 비었으면   → 건너뜀
+   ③ 마지막에 모음(0)에서 카드 1장 → O/X (O: 슬롯1로)
+
+   라운드 끝 → 다시 같은 순서로 반복
+══════════════════════════════════════════════ */
+
+let _eRound   = []  // [{slot}] 이번 라운드 슬롯 목록
+let _eRIdx    = 0
+let _eTimer   = null
+
+function _eSave(){
+  localStorage.setItem('_eS_'+getCurrentCat(),
+    JSON.stringify({ round: _eRound, rIdx: _eRIdx }))
+}
+function _eLoad(){
+  try{
+    const s = JSON.parse(localStorage.getItem('_eS_'+getCurrentCat())||'null')
+    if(s && Array.isArray(s.round) && s.round.length){
+      _eRound = s.round; _eRIdx = Math.min(s.rIdx||0, s.round.length-1)
+      return true
+    }
+  }catch(e){}
+  return false
+}
+
+/* 라운드 빌드: 현재 카드가 있는 슬롯들(높은→낮은) + 모음 1장 */
+function _buildRound(){
+  const slots = []
+  for(let s = maxStep - 1; s >= 1; s--){
+    if(positions.some(p => p === s)) slots.push(s)
+  }
+  // 모음에 카드가 있으면 마지막에 추가 (words 순서 첫 번째)
+  const poolIdx = words.findIndex((_,i) => positions[i] === 0)
+  if(poolIdx !== -1) slots.push(0)
+
+  _eRound = slots
+  _eRIdx  = 0
+}
+
+function startEnlargeSession(){
+  if(!words.length){ alert("카드가 없습니다."); return }
+  if(!_eLoad()) _buildRound()
+  if(!_eRound.length){ alert("학습할 카드가 없습니다."); return }
+  document.getElementById("enlargeOverlay").classList.add("visible")
+  _eStep()
+}
+
+function _eStep(){
+  clearTimeout(_eTimer)
+
+  // 라운드 소진 → 재빌드
+  if(_eRIdx >= _eRound.length){
+    _buildRound()
+    if(!_eRound.length){ eClose(); return }
+  }
+
+  const slot = _eRound[_eRIdx]
+
+  // 모음(0): words 순서로 첫 번째 카드
+  let wordIdx
+  if(slot === 0){
+    wordIdx = words.findIndex((_,i) => positions[i] === 0)
+  } else {
+    wordIdx = positions.findIndex(p => p === slot)
+  }
+
+  // 슬롯 비었으면 건너뜀
+  if(wordIdx === -1){ _eRIdx++; _eStep(); return }
+
+  const w = words[wordIdx]
+  document.getElementById("eWord").textContent    = w.word
+  document.getElementById("eMeaning").textContent = w.meaning
+
+  // 배지
+  if(slot === 0){
+    document.getElementById("eStepBadge").textContent  = "📖 새 카드"
+    document.getElementById("eStepBadge").style.cssText =
+      "background:var(--ok-light);color:var(--ok);"
+  } else {
+    document.getElementById("eStepBadge").textContent  = `Lv ${slot + 1}`
+    document.getElementById("eStepBadge").style.cssText =
+      "background:var(--accent-light);color:var(--accent);"
+  }
+
+  document.getElementById("eCounter").textContent =
+    `${_eRIdx + 1} / ${_eRound.length}`
+  document.getElementById("eProgressFill").style.width =
+    Math.round(slot / maxStep * 100) + "%"
+  const ci = document.getElementById("eCardInner")
+  ci.style.transition = ""
+  ci.style.transform  = ""
+  ci.style.opacity    = "1"
+  ci.classList.remove("flipped")
+}
+
+function eFlip(){
+  clearTimeout(_eTimer)
+  document.getElementById("eCardInner").classList.toggle("flipped")
+}
+
+function eAnswer(step){
+  clearTimeout(_eTimer)
+  const slot = _eRound[_eRIdx]
+  const wordIdx = slot === 0
+    ? words.findIndex((_,i) => positions[i] === 0)
+    : positions.findIndex(p => p === slot)
+
+  if(wordIdx !== -1) moveCard(wordIdx, step)
+
+  _eRIdx++
+  _eSave()
+  _eStep()
+}
+
+function eClose(){
+  clearTimeout(_eTimer)
+  _eSave()
+  document.getElementById("enlargeOverlay").classList.remove("visible")
+}
+
+document.getElementById("enlargeOverlay").addEventListener("click", e=>{
+  if(e.target === document.getElementById("enlargeOverlay")) eClose()
+})
+document.addEventListener("keydown", e=>{
+  if(!document.getElementById("enlargeOverlay").classList.contains("visible")) return
+  if(e.key === "Escape")                                   { e.preventDefault(); eClose();    return }
+  if(e.key === " " || e.key === "ArrowRight")              { e.preventDefault(); eFlip();     return }
+  if(e.key === "ArrowUp"   || e.key.toLowerCase() === "o") { e.preventDefault(); eAnswer(1)  }
+  if(e.key === "ArrowDown" || e.key.toLowerCase() === "x") { e.preventDefault(); eAnswer(-1) }
+})
+
+/* ══ 확대학습 카드 드래그 ══ */
+;(function setupECardDrag(){
+  const card    = document.getElementById("eCard")
+  const inner   = document.getElementById("eCardInner")
+  const hint    = document.getElementById("eDragHint")
+  const THRESHOLD = 80   // 이 픽셀 이상 드래그하면 판정
+  const MAX_ROT   = 18   // 최대 기울기(deg)
+
+  let startX = 0, startY = 0
+  let curX   = 0
+  let isDragging = false
+  let dragMoved  = false   // 실제로 움직였는지 (탭과 드래그 구분)
+
+  function onStart(x, y){
+    startX = x; startY = y; curX = 0
+    isDragging = true; dragMoved = false
+    card.classList.add("dragging")
+  }
+
+  function onMove(x, y){
+    if(!isDragging) return
+    const dx = x - startX
+    const dy = y - startY
+    // 수직 움직임이 수평보다 크면 스크롤로 간주 → 드래그 취소
+    if(!dragMoved && Math.abs(dy) > Math.abs(dx) + 5){ onEnd(false); return }
+    if(Math.abs(dx) > 6) dragMoved = true
+    curX = dx
+    const rot = Math.max(-MAX_ROT, Math.min(MAX_ROT, dx / 6))
+    const flippedPrefix = inner.classList.contains("flipped") ? "rotateY(180deg) " : ""
+    inner.style.transform = flippedPrefix + `translateX(${dx}px) rotate(${rot}deg)`
+
+    // 힌트 표시
+    hint.textContent = dx > 0 ? "O" : "X"
+    const pct = Math.min(Math.abs(dx) / THRESHOLD, 1)
+    if(Math.abs(dx) > 20){
+      hint.className = dx > 0 ? "show-ok" : "show-no"
+      hint.style.opacity = String(Math.min(pct * 1.2, 1))
+    } else {
+      hint.className = ""
+      hint.style.opacity = "0"
+    }
+  }
+
+  function onEnd(doJudge=true){
+    if(!isDragging) return
+    isDragging = false
+    card.classList.remove("dragging")
+
+    // 인라인 transform 완전 제거 → CSS .flipped 클래스가 온전히 적용되도록
+    inner.style.transition = ""
+    inner.style.transform  = ""
+    inner.style.opacity    = "1"
+    hint.className = ""; hint.style.opacity = "0"
+
+    if(doJudge && dragMoved && Math.abs(curX) >= THRESHOLD){
+      const dir = curX > 0 ? 1 : -1
+      dragMoved = false
+      eAnswer(dir)
+    }
+  }
+
+  card.removeAttribute("onclick")
+  card.addEventListener("click", e=>{
+    if(!dragMoved) eFlip()
+    dragMoved = false
+  })
+
+  /* Pointer Events (마우스 + 터치 통합) */
+  card.addEventListener("pointerdown", e=>{
+    // 버튼 클릭은 무시
+    if(e.target.closest("button")) return
+    card.setPointerCapture(e.pointerId)
+    onStart(e.clientX, e.clientY)
+  })
+  card.addEventListener("pointermove", e=>{
+    if(!isDragging) return
+    onMove(e.clientX, e.clientY)
+  })
+  card.addEventListener("pointerup",   e=>onEnd(true))
+  card.addEventListener("pointercancel", e=>onEnd(false))
+})()
+</script>
 </body>
 </html>
