@@ -152,6 +152,17 @@ function pcSetRepeat(areaName,habitName,todayDate){
   const due=REPEAT_OFFSETS.map(d=>{const dt=new Date(today);dt.setDate(dt.getDate()+d);return pcLocalDateStr(dt);});
   repeats[rKey]={baseDate:todayStr,due};pcSaveRepeats(repeats);return true;
 }
+function pcClearRepeat(areaName,habitName){
+  // 체크 해제 시 해당 습관의 반복일정(D+1/3/7/30) 및 알림 전체 삭제
+  const repeats=pcGetRepeats();
+  const rKey=areaName+'::'+habitName;
+  if(repeats[rKey]){
+    delete repeats[rKey];
+    pcSaveRepeats(repeats);
+    return true;
+  }
+  return false;
+}
 function pcGetRepeatInfo(areaName,habitName,dateStr){
   const today=pcLocalDateStr(),rep=pcGetRepeats()[areaName+'::'+habitName];
   if(!rep)return null;
@@ -315,7 +326,12 @@ function renderTable(){
 function cycle(habitIdx,dayIdx){
   const a=getArea(),h=_curHabits[habitIdx],day=_curWeek[dayIdx],key=h.name+day.toDateString(),newV=a.data[key]===1?0:1;
   a.data[key]=newV;
-  if(newV===1)pcSetRepeat(a.name,h.name,day);
+  if(newV===1){
+    pcSetRepeat(a.name,h.name,day);
+  } else {
+    // 체크 해제 → 해당 습관의 반복일정 및 알림 전체 삭제
+    pcClearRepeat(a.name,h.name);
+  }
   save();renderTable();renderStats();
 }
 function renderStats(){
